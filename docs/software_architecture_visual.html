@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>六自由度机械臂 Studio — 架构与数据流（可视化）</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#e0e7ff",
+        primaryTextColor: "#111827",
+        primaryBorderColor: "#6366f1",
+        lineColor: "#475569",
+        secondaryColor: "#f1f5f9",
+        tertiaryColor: "#f8fafc"
+      },
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" },
+      sequence: { useMaxWidth: true }
+    });
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 18px 48px;
+      line-height: 1.65;
+      color: #1f2937;
+      background: linear-gradient(180deg, #fafbfc 0%, #eef2ff55 100%);
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; color: #111827; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; color: #374151; border-bottom: 2px solid #c7d2fe; padding-bottom: 6px; }
+    h3 { font-size: 1.05rem; margin-top: 1.25rem; color: #4b5563; }
+    p { margin: 0.6rem 0; }
+    ul { padding-left: 1.35rem; }
+    .muted { color: #6b7280; font-size: 0.92rem; }
+    .banner {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .banner strong { color: #93c5fd; }
+    .mermaid {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px 12px;
+      margin: 20px 0;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+      font-family: ui-monospace, monospace;
+      white-space: pre-wrap;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+      font-size: 0.92rem;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f8fafc; font-weight: 600; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }
+  </style>
+</head>
+<body>
+
+  <h1>六自由度机械臂仿真软件 · 架构与数据流</h1>
+  <p class="muted">用于课程/技术报告。架构图采用 Mermaid，需<strong>联网</strong>加载 CDN 脚本；断网时请使用同目录下的 <code>.md</code> 在支持 Mermaid 的编辑器中预览。<strong>全量函数说明</strong>见 <code><a href="function_reference.md">function_reference.md</a></code>。</p>
+  <div class="banner"><strong>如何查看：</strong> 用 Chrome / Edge 双击打开本 HTML 文件，向下滚动即可看到自动渲染的流程图与时序图。</div>
+
+  <h2>1. 分层总架构</h2>
+  <p>View（Qt）只管界面；ViewModel 无 Qt；Service 编排用例；<code>SixDofRobot</code> 为数值核心；STL 仅在可视化链路可选挂载。</p>
+  <div class="mermaid">
+flowchart TB
+    subgraph Persist["持久化 / 资源"]
+        JSON["config/robot_mdh_template.json"]
+        STL["assets/ur5e/collision/*.stl（可选）"]
+        OUT["outputs/（导出结果）"]
+    end
+
+    subgraph View["视图层 qt_app/views + widgets"]
+        MW["MainWindow"]
+        CANVAS["RobotCanvas（Matplotlib 3D）"]
+        JPC["JointPlotCanvas"]
+        MW --> CANVAS
+        MW --> JPC
+    end
+
+    subgraph VM["视图模型 SimulationViewModel"]
+        SVM["build_config / validate / 调用 Service / 摘要"]
+    end
+
+    subgraph SVC["应用服务 python/services"]
+        SIMS["SimulationService"]
+        TRS["TrajectoryService"]
+        LANG["LanguageTaskService"]
+        PRG["RobotProgramService"]
+    end
+
+    subgraph Domain["领域核心 python/"]
+        ROB["SixDofRobot"]
+        SIM["simulator.py / trajectory.py"]
+    end
+
+    JSON -->|"启动 load"| SVM
+    MW -->|"link 表格 / q_init / steps -> config dict"| SVM
+    SVM --> SIMS
+    SVM --> TRS
+    SVM --> LANG
+    SVM --> PRG
+    SIMS --> SIM
+    SIMS --> ROB
+    TRS --> ROB
+    TRS --> SIM
+    CANVAS -.-> STL
+    CANVAS --> ROB
+    SIMS --> OUT
+  </div>
+
+  <h2>2. 完整变量与数据传递（View / ViewModel / Model）</h2>
+  <p>本节把<strong>控件读数 → ViewModel → Service / SixDofRobot → 画布与文本</strong>上实际存在的变量名与字典键集中到一张图；与 <code>MainWindow._build_active_config</code>、<code>_wrap_track_result</code>、<code>TrajectoryService.run_commands</code> 对齐。</p>
+
+  <h3>2.1 View 层：<code>MainWindow</code> 与数据流相关的状态</h3>
+  <table>
+    <thead>
+      <tr><th>成员 / 控件</th><th>类型或产出</th><th>在数据流中的作用</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>viewmodel</code></td><td><code>SimulationViewModel</code></td><td>Qt 视图与无 Qt ViewModel 的分界；所有业务编排经此对象。</td></tr>
+      <tr><td><code>parameter_table</code>（及行收集）</td><td>表格 → <code>list[dict]</code> 关节行</td><td><code>_collect_link_rows</code> 等读出 MDH / 关节名等，送入 <code>build_config(..., link_rows, ...)</code>。</td></tr>
+      <tr><td><code>q_init_edit</code> / <code>q_goal_edit</code> / <code>duration_edit</code> / <code>steps_edit</code></td><td>字符串 → 数值列表与时间参数</td><td>同上，拼装 <code>config["default_state"]</code>、<code>config["simulation_defaults"]</code>。</td></tr>
+      <tr><td>轨迹下拉与面板（轴、半径、长度等）</td><td>控件值</td><td><code>build_trajectory_command</code> 得到单个 <code>TrajectoryCommand</code>。</td></tr>
+      <tr><td><code>command_edit</code></td><td><code>str</code></td><td>自然语言：<code>parse_task_blocks(text)</code>；同时驱动可行性定时器。</td></tr>
+      <tr><td><code>task_table</code></td><td>表格 ⇄ <code>TaskBlock</code></td><td>用户编辑结构化任务：<code>_collect_task_blocks_from_table()</code> → <code>run_task_blocks</code>。</td></tr>
+      <tr><td><code>current_results</code></td><td><code>dict | None</code></td><td>最近一次<strong>成套结果</strong>：<code>fk_demo</code>、<code>ptp</code>、<code>cartesian_track</code>、<code>active_config</code>（见下文表）。绑定 3D、关节曲线与文本摘要。</td></tr>
+      <tr><td><code>current_robot</code></td><td><code>SixDofRobot | None</code></td><td>与画布一致的 FK 几何实例：<code>robot_from_config(active_config)</code> 后与 <code>current_results["ptp"]</code>/<code>"cartesian_track"</code> 一起绘制。</td></tr>
+      <tr><td><code>current_task_blocks</code></td><td><code>list[TaskBlock]</code></td><td>解析后与任务表保持同步；执行多段仿真时送入 ViewModel。</td></tr>
+      <tr><td><code>animation_result</code> / <code>animation_frame</code></td><td>轨迹快照 + 帧索引</td><td>播放器按时间片消费与 <code>cartesian_track</code> 同型的数组字段（如 <code>q_rad</code>、<code>position_m</code>）。</td></tr>
+      <tr><td><code>feasibility_label</code></td><td><code>QLabel</code></td><td>展示 <code>precheck_task_blocks</code> + <code>summarize_precheck</code> 的可行性摘要字符串。</td></tr>
+      <tr><td><code>robot_canvas</code> / <code>joint_canvas</code> / <code>result_box</code></td><td>控件</td><td><strong>消费端</strong>：<code>SixDofRobot</code> + <code>current_results</code> 的字典与时间序列字段。</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 ViewModel：<code>SimulationViewModel</code> 主要「入参 → 出参」</h3>
+  <table>
+    <thead>
+      <tr><th>方法</th><th>典型入参</th><th>返回值（要点）</th><th>谁在消费</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>build_config</code></td><td><code>link_rows</code>, <code>q_init_deg</code>, <code>q_goal_deg</code>, <code>duration_s</code>, <code>steps</code></td><td>完整 <code>config: dict</code>（拷贝模板 + 覆写）</td><td><code>validate_*</code> → 各类 <code>run_*</code></td></tr>
+      <tr><td><code>validate_config</code></td><td><code>config</code></td><td>无（异常即失败）</td><td><code>run_simulation</code>、轨迹/TaskBlock 管线</td></tr>
+      <tr><td><code>robot_from_config</code></td><td><code>config</code></td><td><code>SixDofRobot</code></td><td><code>MainWindow</code> 赋给 <code>current_robot</code></td></tr>
+      <tr><td><code>run_simulation</code></td><td><code>config</code></td><td><code>{ fk_demo, ptp, cartesian_track }</code> + <code>active_config</code></td><td>默认 PTP/笛卡尔整条仿真链路</td></tr>
+      <tr><td><code>run_trajectory_command</code></td><td><code>config</code>, <code>TrajectoryCommand</code></td><td>经 <code>_wrap_track_result</code> 后与上者<strong>顶层键相同</strong></td><td>单段几何轨迹仿真</td></tr>
+      <tr><td><code>run_task_blocks</code></td><td><code>config</code>, <code>list[TaskBlock]</code></td><td>同上；<code>cartesian_track</code> 内额外附带 <code>task_blocks</code> 字典列表</td><td>多段自然语言/任务表执行</td></tr>
+      <tr><td><code>precheck_task_blocks</code></td><td><code>config</code>, <code>TaskBlock[]</code></td><td><code>precheck dict</code>（可行性、缩放建议等）</td><td><code>feasibility_label</code></td></tr>
+      <tr><td><code>parse_task_blocks</code></td><td>自然语言 <code>str</code></td><td><code>list[TaskBlock]</code></td><td><code>current_task_blocks</code> / 表格</td></tr>
+      <tr><td><code>_wrap_track_result(config, track_result)</code></td><td>原始 <code>track_result</code></td><td>合并 <code>run_fk</code>：<code>{ fk_demo, ptp*, cartesian_track, active_config }</code>（<code>ptp</code> 的 <code>summary.trajectory_type</code> 置为预览标记）</td><td><code>current_results</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 端到端示意图（payload 写在箭头上）</h3>
+  <div class="mermaid">
+flowchart TB
+  subgraph VW["MainWindow(View)"]
+    VUI["控件: parameter_table, q/edits,<br/>trajectory 面板, command_edit, task_table"]
+    VMEM["状态: current_results<br/>current_robot, current_task_blocks<br/>animation_result, frame"]
+    VOUT["展示: feasibility_label<br/>robot_canvas, joint_canvas, result_box"]
+  end
+
+  subgraph SVM["SimulationViewModel"]
+    BC["build_config + validate"]
+    RSIM["run_simulation"]
+    RTR["run_trajectory_* / run_task_blocks"]
+    WRAP["_wrap_track_result(...)<br/>内调 run_fk 得到 fk_demo"]
+    RFC["robot_from_config"]
+    PRE["precheck + summarize_precheck"]
+    LANG["parse_task_blocks<br/>build_trajectory_command"]
+  end
+
+  subgraph SNUM["服务端数值管线"]
+    TRS["TrajectoryService.run_commands<br/>SixDofRobot + IK + evaluate_trajectory"]
+    SDS["SimulationService.run_default"]
+  end
+
+  VUI -->|"link_rows + q_init + q_goal<br/>duration_s , steps"| BC
+  BC -->|"config dict"| RSIM
+  BC -->|"config"| RTR
+  VUI -->|"自然语言 str"| LANG
+  VUI -->|"表格行"| LANG
+  LANG -->|"TrajectoryCommand"| RTR
+  LANG -->|"TaskBlock[]"| RTR
+  VUI -->|"config + TaskBlock[]"| PRE
+  PRE -->|"摘要 str"| VOUT
+
+  RTR -->|"config + TrajectoryCommand 列表"| TRS
+  TRS -->|"track_result"| WRAP
+  WRAP -->|"fk_demo, ptp, cartesian_track, active_config"| VMEM
+  
+  RSIM -->|"config"| SDS
+  SDS -->|"同上顶层键成套结果"| VMEM
+
+  BC -->|"同一套 config"| RFC
+  RFC -->|"SixDofRobot"| VMEM
+  VMEM -->|"robot , 阵列, metrics"| VOUT
+  </div>
+
+  <h3>2.4 <code>current_results</code> 顶层键；<code>cartesian_track</code>（与 <code>evaluate_trajectory</code>）</h3>
+  <p class="muted">下列与 <code>python/trajectory.py</code> 中 <code>evaluate_trajectory</code>、<code>python/services/trajectory_service.py</code> 的 <code>run_commands</code> 返回值一致；多任务时 ViewModel 在 <code>cartesian_track</code> 上追加 <code>task_blocks</code>。</p>
+  <table>
+    <thead>
+      <tr><th>键</th><th>说明（消费者）</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>fk_demo</code></td><td><code>SimulationService.run_fk(config)</code>：静态 FK 预览（轨迹包装路径）。</td></tr>
+      <tr><td><code>ptp</code></td><td><code>cartesian_track</code> 的深拷贝（仅 <code>summary.trajectory_type</code> 改为预览语义）；结构与下列「轨迹本体」同源。</td></tr>
+      <tr><td><code>cartesian_track</code></td><td>轨迹服务输出的<strong>主时间序列字典</strong>（见下行扩展）。画布、播放器、导出与误差卡片主要读此项。</td></tr>
+      <tr><td><code>active_config</code></td><td>本次运行使用的 <code>config</code> 快照；重现 <code>SixDofRobot</code>。</td></tr>
+    </tbody>
+  </table>
+  <p><strong><code>cartesian_track</code> 内（在 <code>evaluate_trajectory</code> 基础上由 TrajectoryService 增补）：</strong></p>
+  <ul>
+    <li><strong>阵列与时间：</strong><code>time_s</code>，<code>q_rad</code> / <code>q_deg</code>，<code>position_m</code>，<code>desired_position_m</code>，<code>rpy_deg</code>，<code>transforms</code></li>
+    <li><strong><code>summary</code></strong>：机器人名、<code>source</code>、<code>trajectory_type</code>、采样数、时间跨度等</li>
+    <li><strong><code>metrics</code></strong>：<code>max_position_error_m</code>、<code>mean_position_error_m</code>（来自评测）；外加 <code>ik_failure_count</code> / <code>ik_failure_ratio</code>，<code>max_jacobian_condition</code>、<code>near_singular_count</code>；以及关节步长（<code>max_joint_step_deg</code> 等）与地面/连杆间隙类标量（见源码 <code>_joint_motion_metrics</code>、<code>_environment_motion_metrics</code>）</li>
+    <li><strong>命令与诊断：</strong><code>precheck</code>，<code>commands</code> / <code>requested_commands</code>（多段时为列表），末尾单段的 <code>command</code> / <code>requested_command</code>，<code>segment_diagnostics</code></li>
+    <li><strong>多任务：</strong><code>task_blocks</code>（仅 <code>run_task_blocks</code>）</li>
+  </ul>
+
+  <h2>3. 配置 <code>config</code> 与 <code>SixDofRobot</code> 的传递</h2>
+  <div class="mermaid">
+flowchart LR
+    subgraph UI["界面"]
+        TBL["parameter_table<br/>六行 DH"]
+        EDT["q_init / q_goal / duration / steps"]
+    end
+
+    subgraph VM2["SimulationViewModel"]
+        BC["build_config"]
+        CF["config: dict<br/>deepcopy(_config)<br/>links from table"]
+    end
+
+    subgraph Model["Model"]
+        LM["load_robot_config(config)"]
+        SD["SixDofRobot<br/>self.a_m, d_m,<br/>alpha_rad, base, tool…"]
+    end
+
+    TBL --> BC
+    EDT --> BC
+    BC --> CF
+    CF --> LM
+    LM --> SD
+  </div>
+
+  <h2>4. 单条轨迹指令：时序（数据如何变化）</h2>
+  <div class="mermaid">
+sequenceDiagram
+    participant V as MainWindow
+    participant VM as SimulationViewModel
+    participant TR as TrajectoryService
+    participant R as SixDofRobot
+    participant C as RobotCanvas
+
+    V->>VM: build_config(...) 得 config
+    V->>VM: build_trajectory_command(...)
+    VM->>TR: run_command(config, command)
+    TR->>R: SixDofRobot(config)
+    Note over TR,R: desired 点序列 - IK 步进 - q_track / position_m
+    TR-->>VM: track_result(dict)
+    VM-->>V: wrap: fk_demo, ptp, cartesian_track
+
+    V->>VM: robot_from_config(config)
+    VM->>R: SixDofRobot(config) 再现实例
+    V->>C: update_plot(robot, ptp, cartesian_track)
+  </div>
+
+  <h2>5. 自然语言多段任务</h2>
+  <div class="mermaid">
+flowchart LR
+    TXT["command_edit 文本"]
+    LANG["LanguageTaskService.parse<br/>规则 + 正则"]
+    TB["TaskBlock 列表"]
+    CMD["TrajectoryCommand<br/>task.to_command()"]
+    TRJ["TrajectoryService.run_commands"]
+
+    TXT --> LANG
+    LANG --> TB
+    TB --> CMD
+    CMD --> TRJ
+  </div>
+  <p class="muted">说明：此处为离线规则解析，非大模型。</p>
+
+  <h2>6. 核心数据形态对照表（报告可引用）</h2>
+  <table>
+    <thead>
+      <tr><th>变量/类型</th><th>产生于</th><th>含义</th><th>主要消费者</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>config</code>（dict）</td><td>JSON + 界面 <code>build_config</code></td><td>整份机器人与仿真默认参数</td><td><code>SixDofRobot</code>、各 Service</td></tr>
+      <tr><td><code>SixDofRobot</code></td><td><code>SixDofRobot(config)</code></td><td>FK / 约束 / Jacobian / IK</td><td>TrajectoryService、画布、导出</td></tr>
+      <tr><td><code>TrajectoryCommand</code></td><td>UI 或 TaskBlock</td><td>单段轨迹几何与类型</td><td>TrajectoryService</td></tr>
+      <tr><td><code>TaskBlock</code></td><td>LanguageTaskService</td><td>解析后的结构化子任务</td><td><code>run_task_blocks</code></td></tr>
+      <tr><td><code>cartesian_track</code>（dict）</td><td><code>evaluate_trajectory</code> + TrajectoryService 增补</td><td>时间序列阵列 + <code>summary</code> + <code>metrics</code> + <code>precheck</code> + <code>commands</code> 等；多任务时可含 <code>task_blocks</code></td><td>3D、关节曲线、播放、导出、误差卡片</td></tr>
+      <tr><td><code>results</code>（bundle）</td><td><code>run_simulation</code> / <code>_wrap_track_result</code></td><td><code>fk_demo</code>、<code>ptp</code>、<code>cartesian_track</code>、<code>active_config</code></td><td><code>current_results</code> 整包绑定 UI</td></tr>
+    </tbody>
+  </table>
+
+  <h2>7. 相关源码路径索引</h2>
+  <ul>
+    <li><code>python/robot_model.py</code> — <code>SixDofRobot</code></li>
+    <li><code>python/services/trajectory_service.py</code> — 轨迹与 IK 跟踪</li>
+    <li><code>python/services/language_service.py</code> — 自然语言 → <code>TaskBlock</code></li>
+    <li><code>qt_app/viewmodels/simulation_viewmodel.py</code> — ViewModel 编排</li>
+    <li><code>qt_app/views/main_window.py</code> — 主界面与 <code>_build_active_config</code></li>
+    <li><code>qt_app/widgets/robot_canvas.py</code>、<code>ur5e_visual_model.py</code> — 3D 与 STL</li>
+    <li>更详细的 MVVM 文字说明：<code>docs/app_mvvm_architecture.md</code></li>
+  </ul>
+
+  <p class="muted" style="margin-top:2rem;">文档生成用途：架构报告草稿 · 与实际代码一致时请对照仓库最新提交。</p>
+</body>
+</html>

@@ -1,0 +1,133 @@
+{
+  "robot_name": "UR5e",
+  "description": "Universal Robots UR5e DH 参数（官方公开数据，长度配置为 mm，内部换算为 m）；可视化使用 UR5e STL 与官方 URDF 相邻装配链。",
+  "convention": "standard_dh",
+  "compound_base": {
+    "enabled": false
+  },
+  "units": {
+    "length": "mm",
+    "angle": "deg"
+  },
+  "environment": {
+    "ground_plane_z_mm": 0.0,
+    "minimum_joint_clearance_above_ground_mm": 0.0,
+    "ground_penalty_strict_eps_m": 1e-09,
+    "check_joints_1based_above_ground": [2, 3, 4, 5, 6],
+    "soft_penalty_in_ik": true,
+    "enforce_joint_above_ground": true,
+    "ground_refine_after_ik": true,
+    "ik_ground_weight": 8.0,
+    "ik_ground_penalty_damp": 45.0,
+    "ik_ground_gate_pos_err_m": 0.005,
+    "link_envelope_radius_mm": 40.0,
+    "min_clearance_warn_mm": 30.0
+  },
+  "visual_model": {
+    "type": "ur5e",
+    "mesh_dir": "assets/ur5e/collision",
+    "assembly_chain": "UniversalRobots default_kinematics.yaml"
+  },
+  "base_transform": {
+    "translation_m": [0.0, 0.0, 0.0],
+    "rpy_deg": [0.0, 0.0, 0.0]
+  },
+  "tool_transform": {
+    "translation_m": [0.0, 0.0, 0.0],
+    "rpy_deg": [0.0, 0.0, 0.0]
+  },
+  "endpoint7": {
+    "offset_in_frame6_mm": [0.0, 0.0, 0.0],
+    "description": "UR5e flange/TCP offset. Set a nonzero tool offset here only when mounting an extra tool."
+  },
+  "links": [
+    {
+      "joint": "J1",
+      "name": "link1",
+      "joint_type": "R",
+      "a": 0.0,
+      "alpha_deg": 90.0,
+      "d": 162.5,
+      "offset_deg": 0.0,
+      "qlim_deg": [-360.0, 360.0],
+      "notes": "UR5e official DH: d=0.1625m, a=0, alpha=pi/2"
+    },
+    {
+      "joint": "J2",
+      "name": "link2",
+      "joint_type": "R",
+      "a": -425.0,
+      "alpha_deg": 0.0,
+      "d": 0.0,
+      "offset_deg": 0.0,
+      "qlim_deg": [-360.0, 360.0],
+      "notes": "UR5e official DH: d=0, a=-0.425m, alpha=0"
+    },
+    {
+      "joint": "J3",
+      "name": "link3",
+      "joint_type": "R",
+      "a": -392.2,
+      "alpha_deg": 0.0,
+      "d": 0.0,
+      "offset_deg": 0.0,
+      "qlim_deg": [-180.0, 180.0],
+      "notes": "UR5e official DH: d=0, a=-0.3922m, alpha=0"
+    },
+    {
+      "joint": "J4",
+      "name": "link4",
+      "joint_type": "R",
+      "a": 0.0,
+      "alpha_deg": 90.0,
+      "d": 133.3,
+      "offset_deg": 0.0,
+      "qlim_deg": [-360.0, 360.0],
+      "notes": "UR5e official DH: d=0.1333m, a=0, alpha=pi/2"
+    },
+    {
+      "joint": "J5",
+      "name": "link5",
+      "joint_type": "R",
+      "a": 0.0,
+      "alpha_deg": -90.0,
+      "d": 99.7,
+      "offset_deg": 0.0,
+      "qlim_deg": [-360.0, 360.0],
+      "notes": "UR5e official DH: d=0.0997m, a=0, alpha=-pi/2"
+    },
+    {
+      "joint": "J6",
+      "name": "link6",
+      "joint_type": "R",
+      "a": 0.0,
+      "alpha_deg": 0.0,
+      "d": 99.6,
+      "offset_deg": 0.0,
+      "qlim_deg": [-360.0, 360.0],
+      "notes": "UR5e official DH: d=0.0996m, a=0, alpha=0"
+    }
+  ],
+  "default_state": {
+    "q_init_deg": [0.0, -90.0, 90.0, -90.0, -90.0, 0.0],
+    "q_goal_deg": [30.0, -70.0, 80.0, -80.0, -70.0, 30.0]
+  },
+  "simulation_defaults": {
+    "duration_s": 6.0,
+    "steps": 181,
+    "cartesian_track_radius_m": 0.03,
+    "cartesian_track_center_offset_m": [0.02, 0.02, 0.0],
+    "cartesian_track_plane": "xy",
+    "line_track_offset_m": [0.05, 0.0, 0.02],
+    "endpoint7_circle_radius_m": 0.025,
+    "endpoint7_circle_center_offset_m": [0.015, 0.02, 0.015],
+    "endpoint7_circle_plane_normal": [1.0, 1.0, 1.0],
+    "spatial_curve_radius_m": 0.04,
+    "spatial_curve_rise_m": 0.12,
+    "spatial_curve_turns": 1.5,
+    "spatial_curve_center_offset_m": [0.04, 0.02, 0.02],
+    "spatial_curve_axis_direction": [1.0, 1.0, 1.0],
+    "ik_max_iterations": 400,
+    "ik_tolerance": 1e-5
+  }
+}

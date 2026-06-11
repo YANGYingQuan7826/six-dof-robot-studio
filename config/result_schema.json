@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "robot_name": "Generic6RTeachingArm",
+    "source": "matlab|python|qt",
+    "trajectory_type": "ptp|cartesian_track",
+    "time_span_s": 6.0,
+    "samples": 121
+  },
+  "joint_trajectory": [
+    {
+      "time_s": 0.0,
+      "q_deg": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      "q_rad": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    }
+  ],
+  "pose_trajectory": [
+    {
+      "time_s": 0.0,
+      "position_m": [0.0, 0.0, 0.0],
+      "rpy_deg": [0.0, 0.0, 0.0],
+      "transform": [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ]
+    }
+  ],
+  "metrics": {
+    "max_position_error_m": 0.0,
+    "mean_position_error_m": 0.0
+  }
+}

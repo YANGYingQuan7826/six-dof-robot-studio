@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[必填] 替换为 PPT 标题 · Deck Title</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色(默认: 🔵 克莱因蓝 IKB) ============
+       切换主题: 从 references/themes-swiss.md 复制对应的 :root 块
+       整体替换标有"主题色"注释的所有变量,其他散落的 var() 引用无需逐处改 */
+    --paper:#fafaf8;          /* 主底色: 高级灰白 */
+    --paper-rgb:250,250,248;
+    --ink:#0a0a0a;            /* 文字主色: 近黑 */
+    --ink-rgb:10,10,10;
+    --grey-1:#f0f0ee;         /* 浅灰底 */
+    --grey-2:#d4d4d2;         /* 中灰(分割线) */
+    --grey-3:#737373;         /* 暗灰(辅助文字) */
+    --accent:#002FA7;         /* 高亮色: 克莱因蓝 IKB */
+    --accent-rgb:0,47,167;
+    --accent-on:#ffffff;      /* accent 上的反色文字 */
+    --accent-bright:#5B7BFF;  /* 暗底高亮: IKB 提亮版 */
+
+    /* ============ Carbon 文本角色 token (role-based,代替 opacity) ============
+       亮底:  primary 主文 / secondary 次文 / helper 辅助 / placeholder 占位
+       暗底:  inverse 自动反向 */
+    --text-primary:#0a0a0a;        /* = ink, 100% */
+    --text-secondary:#525252;      /* gray 70 */
+    --text-helper:#737373;         /* gray 60 */
+    --text-placeholder:#a3a3a3;    /* gray 40 */
+    --text-on-color:#ffffff;       /* accent/dark 反色 */
+    --border-subtle:#e0e0e0;       /* gray 20, 极细分隔 */
+    --border-strong:#a3a3a3;       /* gray 40, 强分隔 */
+
+    /* ============ 字体(跨主题固定) ============ */
+    --sans:"Inter","Helvetica Neue","Helvetica","Arial","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+    --sans-zh:"PingFang SC","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC","Microsoft YaHei UI","Microsoft YaHei","微软雅黑",sans-serif;
+    --mono:"JetBrains Mono","IBM Plex Mono","SF Mono","Cascadia Code","Consolas","Courier New",ui-monospace,monospace;
+
+    /* ============ Carbon 2x Grid 间距模数 (基础 8px) ============
+       参考: https://carbondesignsystem.com/elements/2x-grid/overview/
+       任何 padding/gap/margin 优先用这套 token,确保 8px 基线对齐 */
+    --sp-3:8px;     /* 02 token */
+    --sp-4:12px;    /* 03 */
+    --sp-5:16px;    /* 04 */
+    --sp-6:24px;    /* 05 */
+    --sp-7:32px;    /* 06 */
+    --sp-8:40px;    /* 07 */
+    --sp-9:48px;    /* 08 */
+    --sp-10:64px;   /* 09 */
+    --sp-11:80px;   /* 10 */
+    --sp-12:96px;   /* 11 */
+    --sp-13:160px;  /* 12 */
+
+    /* ============ Carbon Motion tokens ============
+       https://carbondesignsystem.com/guidelines/motion/overview/
+       两套体系:productive (功能) 短 + 锐 / expressive (叙事) 长 + 软 */
+    --ease-prod:cubic-bezier(.2,0,.38,.9);          /* productive standard */
+    --ease-exp:cubic-bezier(.4,.14,.3,1);            /* expressive standard */
+    --ease-entry-prod:cubic-bezier(0,0,.38,.9);     /* productive entrance */
+    --ease-entry-exp:cubic-bezier(0,0,.3,1);         /* expressive entrance */
+    --dur-fast-1:.07s;   /* 70ms */
+    --dur-fast-2:.11s;   /* 110ms */
+    --dur-mod-1:.15s;    /* 150ms */
+    --dur-mod-2:.24s;    /* 240ms */
+    --dur-slow-1:.4s;    /* 400ms */
+    --dur-slow-2:.7s;    /* 700ms */
+
+    /* 底部分页组件安全区: 主内容最低处不要进入这条区域 */
+    --nav-safe-bottom:8vh;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:var(--paper);color:var(--ink);
+    font-family:var(--sans),var(--sans-zh);
+    font-feature-settings:"ss01","cv11";
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility
+  }
+
+  /* ============ WebGL 网格背景 ============ */
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;opacity:.55;mix-blend-mode:multiply;pointer-events:none}
+  body.dark-bg canvas.bg{mix-blend-mode:screen;opacity:.42}
+  body.low-power canvas.bg,
+  body.low-power canvas.ascii-bg{display:none!important}
+
+  /* ============ Deck 容器 + 翻页 ============ */
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{
+    width:100vw;height:100vh;flex:0 0 100vw;
+    position:relative;
+    padding:5.5vh 5vw 7vh 5vw;
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    background:var(--paper);color:var(--ink);
+  }
+  .slide.grey{background:var(--grey-1)}
+  .slide.dark{background:var(--ink);color:var(--paper)}
+  .slide.dark .grey-only{display:none}
+  .slide.accent{background:var(--accent);color:var(--accent-on)}
+  .slide.accent .accent-block{background:var(--accent-on);color:var(--accent)}
+
+  /* Hero 页透出网格背景多一点 */
+  .slide.hero{background:transparent}
+  .slide.hero.grey{background:rgba(var(--paper-rgb),.86);backdrop-filter:blur(1px)}
+  .slide.hero.dark{background:rgba(var(--ink-rgb),.92);color:var(--paper)}
+
+  /* ============ 装饰: 极细分隔线 + 点阵矩阵 ============ */
+  .rule{width:100%;height:1px;background:currentColor;opacity:.18;margin:0}
+  .rule.thick{height:2px;opacity:.85}
+  .rule.accent{background:var(--accent);opacity:1;height:2px}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  /* 点阵矩阵 (dot matrix) - 用 radial-gradient */
+  .dots{
+    background-image:radial-gradient(currentColor 1px, transparent 1px);
+    background-size:12px 12px;
+    background-position:0 0;
+    opacity:.18;
+  }
+  .dots-fine{
+    background-image:radial-gradient(currentColor 0.8px, transparent 0.8px);
+    background-size:8px 8px;
+    opacity:.14;
+  }
+  .dots-bold{
+    background-image:radial-gradient(currentColor 1.4px, transparent 1.4px);
+    background-size:18px 18px;
+    opacity:.22;
+  }
+
+  /* ============ Chrome (顶部 meta) + Foot (底部) ============ */
+  .chrome{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    font-family:var(--mono);
+    font-size:14px;letter-spacing:.16em;text-transform:uppercase;
+    opacity:.7;margin-bottom:auto
+  }
+  .chrome .l,.chrome .r{display:flex;gap:1.6em;align-items:center}
+  .chrome .sep{width:24px;height:1px;background:currentColor;opacity:.5}
+
+  .foot{
+    margin-top:auto;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    font-family:var(--mono);
+    font-size:14px;letter-spacing:.14em;text-transform:uppercase;
+    opacity:.55;
+    padding-top:2vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.25)
+  }
+  .foot .nb{font-family:var(--sans);font-weight:600;letter-spacing:.04em}
+
+  /* ============ Tag / Kicker / Meta 标签 ============ */
+  .kicker{
+    font-family:var(--mono);
+    font-size:14px;letter-spacing:.24em;text-transform:uppercase;
+    opacity:.65;margin-bottom:2.4vh;
+    display:inline-flex;align-items:center;gap:.8em
+  }
+  .kicker::before{
+    content:"";width:24px;height:1px;background:currentColor;opacity:.6
+  }
+  .kicker.no-line::before{display:none}
+  .kicker.accent{color:var(--accent);opacity:1;font-weight:600}
+
+  .tag{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:14px;letter-spacing:.18em;text-transform:uppercase;
+    padding:5px 10px;border:1px solid currentColor;opacity:.85
+  }
+  .tag.solid{background:currentColor;color:var(--paper);border-color:transparent}
+  .tag.accent{background:var(--accent);color:var(--accent-on);border-color:transparent;opacity:1}
+
+  /* ============ 标题层级 (无衬线 · 极轻字重 · 极致字号对比) ============ */
+  .h-hero{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:200;
+    font-size:11vw;
+    line-height:.92;
+    letter-spacing:-.04em;
+  }
+  .h-hero-zh{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:200;
+    font-size:8.4vw;
+    line-height:.96;
+    letter-spacing:-.025em;
+  }
+  .h-xl{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:200;
+    font-size:6vw;
+    line-height:1;
+    letter-spacing:-.03em;
+  }
+  .h-xl-zh{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:200;
+    font-size:5vw;
+    line-height:1.05;
+    letter-spacing:-.025em;
+  }
+  .h-md{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:300;
+    font-size:2.6vw;
+    line-height:1.18;
+    letter-spacing:-.015em;
+  }
+  .h-sub{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:2.2vw;
+    line-height:1.3;
+    letter-spacing:-.01em;
+    opacity:.7;
+  }
+
+  /* ============ 正文 / 引语 / 元数据 ============ */
+  .lead{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:1.55vw;
+    line-height:1.4;
+    letter-spacing:-.005em;
+    opacity:.86;
+  }
+  .body{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:max(18px,1.08vw);
+    line-height:1.6;
+    letter-spacing:0;
+    opacity:.78;
+  }
+  .body-sm{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:max(16px,.92vw);
+    line-height:1.55;
+    opacity:.7;
+  }
+  .meta{
+    font-family:var(--mono);
+    font-size:max(14px,.82vw);
+    letter-spacing:.18em;text-transform:uppercase;
+    opacity:.6;
+  }
+  .meta-row{
+    display:flex;gap:1.4em;align-items:baseline;flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:max(14px,.88vw);letter-spacing:.16em;text-transform:uppercase;
+    opacity:.65;
+  }
+  .meta-row span:not(.dot){display:inline-block}
+  .meta-row .dot{
+    display:inline-block;width:4px;height:4px;border-radius:50%;
+    background:currentColor;opacity:.5;vertical-align:middle
+  }
+
+  /* ============ KPI Hero (视觉英雄数据) ============ */
+  .kpi-hero{
+    font-family:var(--sans);
+    font-weight:800;
+    font-size:22vw;
+    line-height:.82;
+    letter-spacing:-.05em;
+    font-feature-settings:"tnum","ss01";
+  }
+  .kpi-hero .unit{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:500;
+    font-size:.18em;
+    letter-spacing:0;
+    opacity:.5;
+    margin-left:.12em;
+    vertical-align:.5em;
+  }
+  .kpi-hero.accent{color:var(--accent)}
+  .kpi-big{
+    font-family:var(--sans);
+    font-weight:800;
+    font-size:11vw;
+    line-height:.85;
+    letter-spacing:-.04em;
+    font-feature-settings:"tnum"
+  }
+  .kpi-mid{
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:6vw;
+    line-height:.88;
+    letter-spacing:-.03em;
+    font-feature-settings:"tnum"
+  }
+
+  /* ============ Stat Card (数据卡片 · 极简) ============ */
+  .stat-card{
+    display:flex;flex-direction:column;
+    gap:.6vh;align-items:flex-start;
+    padding-top:1.6vh;
+    border-top:2px solid currentColor;
+  }
+  .stat-card.thin{border-top-width:1px;border-color:rgba(127,127,127,.4)}
+  .stat-card.accent-top{border-top-color:var(--accent);border-top-width:3px}
+  .stat-card .stat-label{
+    font-family:var(--mono);
+    font-size:max(14px,.82vw);
+    letter-spacing:.24em;text-transform:uppercase;
+    opacity:.6;
+  }
+  .stat-card .stat-nb{
+    font-family:var(--sans);
+    font-weight:800;
+    font-size:5.6vw;
+    line-height:.88;
+    letter-spacing:-.035em;
+    font-feature-settings:"tnum";
+    margin-top:.4vh;
+  }
+  .stat-card .stat-nb .stat-unit{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:500;
+    font-size:.32em;
+    letter-spacing:0;
+    opacity:.6;
+    margin-left:.14em;
+    vertical-align:.4em;
+  }
+  .stat-card .stat-note{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:max(16px,.98vw);
+    line-height:1.5;
+    opacity:.7;
+    margin-top:.6vh;
+  }
+  .grid-4 .stat-card .stat-nb{font-size:4.6vw}
+  .grid-3 .stat-card .stat-nb{font-size:6.4vw}
+  .grid-6 .stat-card .stat-nb{font-size:4vw}
+
+  /* ============ Accent Block (高亮色块包裹内容) ============ */
+  .accent-block{
+    background:var(--accent);color:var(--accent-on);
+    padding:2.4vh 2vw;
+  }
+  .accent-block.tight{padding:1.4vh 1.4vw}
+  .accent-block .h-md,.accent-block .h-xl,.accent-block .kpi-mid{color:var(--accent-on)}
+
+  .ink-block{
+    background:var(--ink);color:var(--paper);
+    padding:2.4vh 2vw
+  }
+  .grey-block{
+    background:var(--grey-1);
+    padding:2.4vh 2vw
+  }
+
+  /* 高亮文字 (mark 风格) */
+  .mark{
+    background:var(--accent);color:var(--accent-on);
+    padding:0 .2em;
+    box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;
+  }
+  .mark.ink{background:var(--ink);color:var(--paper)}
+  .underline-accent{
+    background-image:linear-gradient(to bottom, transparent 70%, var(--accent) 70%, var(--accent) 96%, transparent 96%);
+    padding:0 .05em
+  }
+
+  /* ============ Pipeline / Step ============ */
+  .pipeline-section{margin-top:3.2vh;padding-top:2.2vh;border-top:1px solid rgba(127,127,127,.3)}
+  .pipeline-section:first-of-type{border-top:0;padding-top:0;margin-top:2.4vh}
+  .pipeline-label{
+    font-family:var(--mono);
+    font-size:max(14px,.84vw);
+    letter-spacing:.24em;text-transform:uppercase;
+    opacity:.6;margin-bottom:1.8vh;
+  }
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1vw;
+  }
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .step{
+    display:flex;flex-direction:column;gap:.6vh;
+    padding-top:1.2vh;
+    border-top:2px solid currentColor;
+  }
+  .step.accent-top{border-top-color:var(--accent);border-top-width:3px}
+  .step-nb{
+    font-family:var(--mono);
+    font-weight:500;
+    font-size:max(14px,1vw);
+    opacity:.5;letter-spacing:.04em
+  }
+  .step-title{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:700;
+    font-size:1.4vw;
+    letter-spacing:-.01em;
+    line-height:1.2;
+  }
+  .step-desc{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:400;
+    font-size:max(16px,.94vw);
+    line-height:1.45;
+    opacity:.7;
+  }
+
+  /* ============ 网格系统 (模块化网格) ============ */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-2-4-8,
+  .frame.grid-3-3,
+  .frame.grid-12,
+  .frame.grid-6,
+  .frame.grid-4,
+  .frame.grid-3{display:grid}
+
+  /* 12 列模块化网格 (瑞士风核心) */
+  .grid-12{
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:2vh 1.2vw;
+    align-items:start;
+  }
+  .span-2{grid-column:span 2}
+  .span-3{grid-column:span 3}
+  .span-4{grid-column:span 4}
+  .span-5{grid-column:span 5}
+  .span-6{grid-column:span 6}
+  .span-7{grid-column:span 7}
+  .span-8{grid-column:span 8}
+  .span-9{grid-column:span 9}
+  .span-12{grid-column:span 12}
+
+  /* 经典分栏 */
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-2-4-8{display:grid;grid-template-columns:4fr 8fr;gap:3vw 4vh;align-items:start}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw 4vh;align-items:start}
+  .grid-3-3{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:2.4vh 2vw}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:3vh 3vw;flex:1;align-content:center}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:3vh 2.4vw;flex:1;align-content:center}
+
+  /* 工具类 */
+  .col{display:flex;flex-direction:column;gap:2vh}
+  .row{display:flex;align-items:center;gap:2vw}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .right{text-align:right;justify-self:end}
+  .top{align-self:start}
+  .bottom{align-self:end}
+  .va-center{align-self:center}
+  .nowrap{white-space:nowrap}
+
+  /* 非对称定位 */
+  .pos-absolute{position:absolute}
+  .bottom-left{position:absolute;left:5vw;bottom:8vh;max-width:50vw}
+  .bottom-right{position:absolute;right:5vw;bottom:8vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:5vw;top:5.5vh;text-align:right}
+  .top-left{position:absolute;left:5vw;top:5.5vh}
+
+  /* ============ Callout (引用框 · 极简) ============ */
+  .callout{
+    padding:2vh 2vw;
+    border-left:3px solid var(--accent);
+    font-family:var(--sans),var(--sans-zh);
+    font-size:max(14px,1vw);
+    line-height:1.55;
+    opacity:.9;
+  }
+  .callout.ink{border-left-color:currentColor}
+  .callout .cite,.callout .callout-src{
+    display:block;margin-top:1.2vh;
+    font-family:var(--mono);
+    font-size:14px;letter-spacing:.16em;text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ============ Icons (Lucide via CDN) ============ */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+  .ico-lg{width:2.4vw;height:2.4vw;stroke-width:1.4;display:inline-block}
+  .ico-md{width:1.6vw;height:1.6vw;stroke-width:1.6;display:inline-block;vertical-align:-.4em}
+  .ico-sm{width:1vw;height:1vw;stroke-width:1.8;display:inline-block;vertical-align:-.15em;opacity:.7}
+
+  /* ============ 几何小图标 (装饰) ============ */
+  .geo-dot{width:.7vw;height:.7vw;border-radius:50%;background:var(--accent);display:inline-block;vertical-align:middle}
+  .geo-square{width:.7vw;height:.7vw;background:var(--accent);display:inline-block;vertical-align:middle}
+  .geo-line{width:2vw;height:2px;background:var(--accent);display:inline-block;vertical-align:middle}
+  .geo-circle-o{width:.9vw;height:.9vw;border:2px solid currentColor;border-radius:50%;display:inline-block;vertical-align:middle}
+
+  /* ============ 图片 frame-img ============ */
+  .frame-img{overflow:hidden;position:relative;background:var(--paper);box-sizing:border-box;width:100%}
+  .slide.dark .frame-img{background:rgba(255,255,255,.06)}
+  .frame-img > img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
+  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
+  .frame-img.pos-top > img{object-position:top center}
+  .frame-img.pos-face > img{object-position:center 35%}
+  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
+  .frame-img.r-21x9{aspect-ratio:21/9;max-height:54vh}
+  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
+  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
+  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
+  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
+  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
+  .frame-img.h-16{height:16vh}
+  .frame-img.h-18{height:18vh}
+  .frame-img.h-22{height:22vh}
+  .frame-img.h-26{height:26vh}
+  .frame-img.h-28{height:28vh}
+  .frame-img.h-32{height:32vh}
+  .frame-img.swiss-lined{border-top:2px solid var(--accent)}
+  .frame-img.swiss-keyline{border:0}
+
+  /* P22 Image Hero: 下半屏内容区必须和图片拉开距离,不要贴在图下沿 */
+  .image-hero-body{
+    display:grid;grid-template-columns:6fr 6fr;gap:3vw;
+    padding:6.6vh 5vw 4.4vh;flex:1;align-content:start
+  }
+  .image-hero-stats{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;align-items:start
+  }
+  .img-cap{
+    display:block;margin-top:.8vh;
+    font-family:var(--mono);
+    font-size:max(14px,.82vw);
+    letter-spacing:.2em;text-transform:uppercase;
+    opacity:.6;
+  }
+  figure.frame-img,figure.tile{margin:0;display:flex;flex-direction:column;min-width:0}
+  figure.tile > .frame-img{flex:0 0 auto}
+
+  /* 瑞士风图文混排: 只用直角、发丝线、单一 accent；图像容器不加圆角/阴影 */
+  .swiss-img-split{display:grid;grid-template-columns:5fr 7fr;gap:3vw;align-items:start;flex:1;min-height:0}
+  .swiss-img-split.reverse{grid-template-columns:7fr 5fr}
+  .swiss-img-split.align-bottom{align-items:end}
+  .swiss-img-split.align-bottom .swiss-img-copy{align-self:end}
+  .swiss-img-split.align-image-bottom{align-items:end;padding-bottom:var(--nav-safe-bottom)}
+  .swiss-img-split.align-image-bottom .swiss-img-copy{align-self:end}
+  .swiss-img-split.align-image-bottom figure.tile{align-self:end;position:relative}
+  .swiss-img-split.align-image-bottom figure.tile > .swiss-img-caption{
+    position:absolute;left:0;right:0;top:calc(100% + var(--sp-4));margin-top:0
+  }
+  .nav-safe-bottom{padding-bottom:var(--nav-safe-bottom)}
+  .nav-safe-bottom-tight{padding-bottom:calc(var(--nav-safe-bottom) * .65)}
+  .swiss-img-copy{display:flex;flex-direction:column;gap:var(--sp-6);min-width:0}
+  .swiss-img-copy .rule{margin:0}
+  .swiss-img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-5);align-items:start;margin-top:var(--sp-7)}
+  .swiss-img-grid.two{grid-template-columns:repeat(2,1fr)}
+  .swiss-img-grid.tight{margin-top:0}
+  .swiss-img-caption{
+    display:flex;justify-content:space-between;gap:var(--sp-5);
+    margin-top:var(--sp-4);
+    font-family:var(--mono);font-size:max(14px,.74vw);
+    letter-spacing:.16em;text-transform:uppercase;color:var(--text-helper);
+    border-top:1px solid var(--border-subtle);padding-top:var(--sp-4)
+  }
+  .swiss-img-caption strong{
+    font-family:var(--sans),var(--sans-zh);font-size:max(16px,.9vw);
+    font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-primary)
+  }
+
+  /* ============ Bar Chart (扁平几何图表) ============ */
+  .bar-chart{display:flex;flex-direction:column;gap:1.4vh}
+  .bar-row{display:grid;grid-template-columns:8em 1fr 4em;gap:1.4vw;align-items:center}
+  .bar-row .bar-label{font-family:var(--mono);font-size:max(14px,.84vw);letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+  .bar-row .bar-track{height:14px;background:rgba(127,127,127,.18);position:relative}
+  .bar-row .bar-fill{height:100%;background:var(--accent);position:absolute;left:0;top:0}
+  .bar-row .bar-fill.ink{background:currentColor}
+  .bar-row .bar-value{font-family:var(--sans);font-weight:700;font-size:max(16px,1.05vw);text-align:right;font-feature-settings:"tnum"}
+
+  /* ============ 导航 ============ */
+  /* 底部分页导航: 仅保留方块本身,无背景无描边 */
+  #nav{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:0;background:transparent;border:0}
+  #nav .dot{width:6px;height:6px;background:rgba(0,0,0,.28);cursor:pointer;transition:all .25s ease;border:0;padding:0;border-radius:0}
+  #nav .dot:hover{background:rgba(0,0,0,.55)}
+  #nav .dot.active{background:var(--accent);width:18px}
+  body.dark-bg #nav .dot{background:rgba(255,255,255,.32)}
+  body.dark-bg #nav .dot.active{background:var(--accent)}
+
+  #hint{position:fixed;bottom:2.4vh;right:2.5vw;z-index:30;font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.4;color:var(--ink-tint, currentColor)}
+  body.dark-bg #hint{color:var(--paper);opacity:.4}
+  body.low-power #hint{color:var(--accent);opacity:.72}
+  body.dark-bg.low-power #hint{color:var(--paper);opacity:.72}
+
+  /* ESC 索引页: 动画元素强制可见 (覆盖 motion-ready 的 opacity:0) */
+  #overview [data-anim]{opacity:1!important;transform:none!important}
+  #overview .slide *{animation:none!important;transition:none!important}
+
+  /* 统一卡片样式 token: card-fill (默认灰底 · 中性) + card-ink (反转高对比) + card-accent (单一焦点) */
+  .card-fill{background:#f5f5f4;border:0;color:var(--text-primary)}
+  .card-ink{background:var(--ink);border:0;color:var(--paper)}
+  .card-ink .t-meta,.card-ink .t-cat{color:rgba(255,255,255,.6)}
+  .card-accent{background:var(--accent);border:0;color:var(--accent-on)}
+  .card-accent .t-meta,.card-accent .t-cat{color:var(--accent-on)}
+
+  /* ============ 动效 (与原模板一致) ============ */
+  [data-anim]{opacity:1}
+  body.motion-ready [data-anim]{opacity:0}
+  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
+  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
+  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
+  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
+  body.low-power #deck{transition:none!important}
+  body.low-power *,
+  body.low-power *::before,
+  body.low-power *::after{animation:none!important;transition:none!important}
+  body.low-power.motion-ready [data-anim],
+  body.low-power [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ============================================================
+     ↓↓↓ V2 EXTENSIONS · Canvas Mode + 参考图新类
+     验证效果后沉淀回 template-swiss.html
+     ============================================================ */
+
+  /* Windows 适配:雅黑没有 ExtraLight 200,中文大字号字重补偿 */
+  body.is-win .name-mega,
+  body.is-win .num-mega,
+  body.is-win .kpi-thin,
+  body.is-win .tl-node .multi{
+    font-weight:300;letter-spacing:-.02em;
+  }
+  body.is-win [style*="font-weight:200"]{font-weight:300 !important}
+
+  /* 全屏铺满模式 · 关闭 WebGL · 卡片即页面 */
+  body.canvas-mode{background:var(--paper)}
+  body.canvas-mode canvas.bg{display:none !important}
+  body.canvas-mode .slide{background:var(--paper);padding:0;align-items:stretch;justify-content:stretch}
+  body.canvas-mode .slide.hero{background:var(--paper)}
+
+  .canvas-card{
+    width:100vw;
+    height:100vh;
+    background:var(--paper);color:var(--ink);
+    padding:5.6vh 5vw 4.4vh;
+    display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+    box-shadow:none;
+    border-radius:0;
+  }
+  .slide.dark .canvas-card{background:var(--ink);color:var(--paper)}
+  .slide.accent .canvas-card{background:var(--accent);color:var(--accent-on)}
+  .slide.grey .canvas-card{background:var(--grey-1);color:var(--ink)}
+  .slide.split .canvas-card{padding:0;flex-direction:row}
+
+  /* ============ ASCII 点阵呼吸场 · IKB 封面/封底专用 ============
+     用法:在 .canvas-card(或 split .half.b-accent)内首位插入 <canvas class="ascii-bg" aria-hidden="true">.
+     动画由本文件底部的 ASCII IIFE 自动启动,所有 canvas.ascii-bg 都会被扫到.
+     其他内容靠 .canvas-card > *:not(.ascii-bg){z-index:1} 自动浮在上层. */
+  canvas.ascii-bg{
+    position:absolute;inset:0;width:100%;height:100%;
+    pointer-events:none;z-index:0;
+    mix-blend-mode:screen;opacity:.92;
+  }
+  .canvas-card > *:not(.ascii-bg){position:relative;z-index:1}
+  .slide.accent .canvas-card .chrome-min{color:rgba(255,255,255,.62)}
+  .slide.accent .canvas-card .t-meta{color:rgba(255,255,255,.7)}
+  .split-half > .half.b-accent .chrome-min{color:rgba(255,255,255,.62)}
+
+  /* 编号目录页 · 超大数字 + 国家名风格 — 越大越细 */
+  .num-mega{
+    font-family:var(--sans);font-weight:200;
+    font-size:9vw;line-height:1;letter-spacing:-.04em;
+    font-feature-settings:"tnum"
+  }
+  .num-mega.thin{font-weight:200}
+  .name-mega{
+    font-family:var(--sans);font-weight:200;
+    font-size:9vw;line-height:1;letter-spacing:-.035em;
+  }
+  .name-mega.muted{color:var(--grey-3)}
+
+  /* 细体超大 KPI — 字号越大权重越低 */
+  .kpi-thin{
+    font-family:var(--sans);font-weight:200;
+    font-size:14vw;line-height:.92;letter-spacing:-.045em;
+    font-feature-settings:"tnum"
+  }
+  .kpi-thin .unit{font-size:.3em;font-weight:300;opacity:.55;margin-left:.15em;vertical-align:.6em}
+  .kpi-thin.accent{color:var(--accent)}
+  .kpi-thin-sm{
+    font-family:var(--sans);font-weight:250;
+    font-size:5.6vw;line-height:1.04;letter-spacing:-.03em;
+    font-feature-settings:"tnum"
+  }
+  .kpi-thin-sm .unit{font-size:.3em;font-weight:300;opacity:.55;margin-left:.12em;vertical-align:.45em}
+
+  /* 4 列细线 KPI 行 — 顶部一根 hairline,内部不再加竖线 */
+  /* 4 列 KPI: 用纵向分割线建立网格感 (Carbon 2x grid 模数) */
+  .kpi-row-4{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:0;padding-top:2.4vh;
+    border-top:1px solid var(--grey-2)
+  }
+  .kpi-row-4 > .kpi-cell{
+    padding:1.6vh 1.6vw 0;
+    border-left:1px solid var(--grey-2)
+  }
+  .kpi-row-4 > .kpi-cell:first-child{padding-left:0;border-left:none}
+  .kpi-cell .lbl{font-family:var(--mono);font-size:max(14px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-bottom:1.2vh}
+  .kpi-cell .nb{font-family:var(--sans);font-weight:250;font-size:3.2vw;line-height:1;letter-spacing:-.025em;font-feature-settings:"tnum"}
+  .kpi-cell .nb .unit{font-size:.32em;font-weight:300;opacity:.6;margin-left:.1em;vertical-align:.4em}
+  .kpi-cell .note{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.92vw);line-height:1.5;opacity:.7;margin-top:1.2vh}
+
+  /* 时间线轴 — 通用 axis token, 横纵共享
+     axis 列 = 24px 固定宽,dot 直径 8px,绝对居中在 axis 列中线 (12px)
+     虚线绝对定位 left:12px,与 dot 中心严格对齐 */
+  .timeline-v{
+    --tl-axis-w:24px;        /* axis 列固定宽度 */
+    --tl-dot:8px;            /* 圆点直径 */
+    position:relative;margin-top:var(--sp-7)
+  }
+  .timeline-v::before{
+    content:"";position:absolute;
+    left:calc(var(--tl-axis-w) / 2);
+    transform:translateX(-50%);
+    top:var(--sp-5);bottom:var(--sp-5);
+    width:1px;
+    background:repeating-linear-gradient(to bottom,currentColor 0 4px,transparent 4px 8px);
+    opacity:.35;pointer-events:none;z-index:0
+  }
+  .tl-node{
+    position:relative;
+    display:grid;
+    grid-template-columns:var(--tl-axis-w) minmax(0,7em) minmax(0,7.6em) 1fr;
+    gap:0 var(--sp-5);
+    align-items:center;
+    padding:var(--sp-7) 0
+  }
+  /* 进度点: 纯色实心圆,无背景无描边,精确居中在 axis 列中线 */
+  .tl-node .dot{
+    width:var(--tl-dot);height:var(--tl-dot);
+    border-radius:50%;
+    background:currentColor;
+    justify-self:center;
+    z-index:1
+  }
+  .tl-node.accent .dot{background:var(--accent)}
+  .tl-node .yr{
+    font-family:var(--mono);font-weight:500;
+    font-size:max(14px,1vw);letter-spacing:.04em
+  }
+  .tl-node .multi{
+    font-family:var(--sans);font-weight:200;
+    font-size:clamp(28px,2.8vw,56px);
+    line-height:.95;letter-spacing:-.025em;
+    white-space:nowrap;
+    overflow:hidden;
+    min-width:0
+  }
+  .tl-node .multi .unit{
+    font-size:.36em;font-weight:300;opacity:.6;
+    margin-left:.2em;
+    vertical-align:.42em;
+    letter-spacing:0
+  }
+  .tl-node.accent .multi{color:var(--accent)}
+  .tl-node .desc{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:max(16px,.94vw);line-height:1.55;opacity:.78;
+    min-width:0
+  }
+
+  /* 横向时间线 (.timeline-h) — 与 .timeline-v 共享 axis token, 视觉语言一致 */
+  .timeline-h{
+    --tl-axis-w:8px;
+    --tl-dot:8px;
+    position:relative;
+    flex:1;
+    display:flex;align-items:center
+  }
+  .timeline-h::before{
+    content:"";position:absolute;
+    top:50%;left:5%;right:5%;height:1px;
+    transform:translateY(-50%);
+    background:repeating-linear-gradient(to right,currentColor 0 4px,transparent 4px 8px);
+    opacity:.35;pointer-events:none;z-index:0
+  }
+  .timeline-h .tl-row{
+    position:relative;width:100%;
+    display:grid;grid-template-columns:repeat(5,1fr);
+    align-items:center
+  }
+  .timeline-h .th-node{
+    position:relative;display:flex;justify-content:center
+  }
+  /* 横向 dot: 8px 纯色实心,无描边无阴影 (与 P2 保持一致) */
+  .timeline-h .th-node .dot{
+    width:var(--tl-dot);height:var(--tl-dot);
+    border-radius:50%;
+    background:var(--ink);
+    z-index:1;position:relative
+  }
+  .timeline-h .th-node.accent .dot{background:var(--accent)}
+  .timeline-h .th-node .label{
+    position:absolute;left:50%;transform:translateX(-50%);
+    width:13vw;text-align:center;
+    display:flex;flex-direction:column;gap:.4vh
+  }
+  .timeline-h .th-node.up .label{bottom:calc(50% + 22px)}
+  .timeline-h .th-node.down .label{top:calc(50% + 22px)}
+  .timeline-h .th-node .yr{
+    font-family:var(--mono);font-size:max(14px,.78vw);letter-spacing:.05em;
+    color:var(--text-helper);font-weight:500
+  }
+  .timeline-h .th-node.accent .yr{color:var(--accent)}
+  .timeline-h .th-node .name{
+    font-family:var(--sans);font-size:max(16px,1.05vw);font-weight:400;
+    color:var(--text-primary);line-height:1.2;letter-spacing:-.005em
+  }
+  .timeline-h .th-node.accent .name{color:var(--accent)}
+  .timeline-h .th-node .desc{
+    font-family:var(--sans),var(--sans-zh);font-size:max(14px,.84vw);
+    color:var(--text-secondary);font-weight:400;line-height:1.4
+  }
+
+  /* 几何图示 (参考图 5) — SVG-friendly 容器 */
+  .geo-icon{width:5vw;height:5vw;display:block;margin-bottom:2.2vh;color:var(--ink);flex-shrink:0}
+  .slide.dark .geo-icon{color:var(--paper)}
+  .geo-icon svg{width:100%;height:100%;overflow:visible}
+  .geo-icon .stroke{fill:none;stroke:currentColor;stroke-width:1.4}
+  .geo-icon .stroke-accent{fill:none;stroke:var(--accent);stroke-width:1.4}
+  .geo-icon .fill-accent{fill:var(--accent)}
+
+  /* 卡片网格 (参考图 1 卡片漂浮) — 在 canvas-card 内部再分卡 */
+  .sub-grid-3-2{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:1.4vh 1.4vw;flex:1;align-content:stretch;margin-top:3vh}
+  .sub-card{
+    background:var(--grey-1);
+    padding:2.4vh 1.6vw 2vh;
+    display:flex;flex-direction:column;
+    position:relative;border-radius:3px;
+    min-height:0
+  }
+  .slide.dark .sub-card{background:rgba(255,255,255,.06)}
+  .sub-card.accent{background:var(--accent);color:var(--accent-on)}
+  .sub-card.ink{background:var(--ink);color:var(--paper)}
+  .sub-card .nb-corner{
+    position:absolute;top:1.6vh;right:1.4vw;
+    font-family:var(--mono);font-size:max(14px,.8vw);
+    letter-spacing:.16em;opacity:.55
+  }
+  .sub-card .ttl{font-family:var(--sans),var(--sans-zh);font-weight:500;font-size:max(17px,1.5vw);line-height:1.2;letter-spacing:-.015em;margin-bottom:1vh}
+  .sub-card .desc{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.94vw);line-height:1.55;opacity:.78;margin-top:auto}
+  .sub-card .lucide{width:2.4vw;height:2.4vw;stroke-width:1.4;color:currentColor;margin-bottom:1.6vh;flex-shrink:0}
+  .sub-card.accent .lucide{color:var(--accent-on)}
+
+  /* 三层架构纯色块拼图 (参考图 4 + 6) — 横排等高色块 */
+  .stack-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vw;flex:1;margin-top:6vh;align-items:stretch}
+  .stack-block{
+    display:flex;flex-direction:column;
+    padding:3.2vh 1.8vw 2.4vh;
+    position:relative;
+    min-height:0
+  }
+  .stack-block.b-accent{background:var(--accent);color:var(--accent-on)}
+  .stack-block.b-grey{background:var(--grey-1);color:var(--ink)}
+  .stack-block.b-ink{background:var(--ink);color:var(--paper)}
+  .stack-block .layer-nb{font-family:var(--mono);font-size:max(14px,.84vw);letter-spacing:.18em;opacity:.65;margin-bottom:auto}
+  .stack-block .layer-icon{margin-bottom:1.6vh}
+  .stack-block .layer-icon svg{width:3vw;height:3vw}
+  .stack-block .layer-icon .stroke{fill:none;stroke:currentColor;stroke-width:1.6}
+  .stack-block .layer-ttl{font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(17px,2vw);line-height:1.1;margin-top:1vh;letter-spacing:-.02em}
+  .stack-block .layer-desc{font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(16px,.94vw);line-height:1.55;opacity:.88;margin-top:1.4vh}
+  .stack-block .lucide{width:2.6vw;height:2.6vw;stroke-width:1.4;margin-bottom:1.6vh;flex-shrink:0}
+  .stack-block .layer-tag{font-family:var(--mono);font-size:max(14px,.74vw);letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-top:1.6vh;border-top:1px solid currentColor;padding-top:1vh}
+
+  /* 不等高柱状 KPI 塔 (参考图 6) */
+  .bar-towers{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:1.2vw;flex:1;align-items:end;margin-top:auto
+  }
+  .bar-tower{
+    display:flex;flex-direction:column;justify-content:flex-end;
+    min-height:0;height:100%
+  }
+  .bar-tower .cap{
+    background:var(--grey-1);
+    height:5.6vh;
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:.4vh
+  }
+  .bar-tower .cap svg{width:1.6vw;height:1.6vw;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .bar-tower .body-block{
+    flex:0 1 auto;
+    padding:2vh 1.2vw 2vh;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    min-height:18vh
+  }
+  .bar-tower .body-block.h-1{min-height:22vh}
+  .bar-tower .body-block.h-2{min-height:30vh}
+  .bar-tower .body-block.h-3{min-height:38vh}
+  .bar-tower .body-block.h-4{min-height:46vh}
+  /* 默认所有 KPI 塔统一为浅描边卡 — 不抢戏;只有 .b-accent 突出为 IKB */
+  .bar-tower .body-block{background:var(--paper);color:var(--ink);border:1px solid var(--grey-2)}
+  .bar-tower .body-block.b-accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
+  .bar-tower .lbl{font-family:var(--mono);font-size:max(14px,.82vw);letter-spacing:.16em;text-transform:uppercase;opacity:.65;margin-bottom:1vh}
+  .bar-tower .nb{font-family:var(--sans);font-weight:250;font-size:max(20px,2.8vw);line-height:1;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .bar-tower .body-block.b-accent .nb{font-weight:300}
+  .bar-tower .nb .unit{font-size:.36em;font-weight:300;opacity:.7;margin-left:.08em;vertical-align:.4em}
+  .bar-tower .sub{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.92vw);opacity:.75;margin-top:1.2vh;line-height:1.5}
+  .bar-tower .cap{background:var(--grey-1);color:var(--ink)}
+  .bar-tower .lucide{width:1.6vw;height:1.6vw;stroke-width:1.4}
+
+  /* ============ Carbon Productive Type Tokens ============
+     用于 PPT 中的"productive 时刻": 列表、表格行、说明文、章节标签
+     固定 px 字号,密集紧凑;与 vw-based 的 Expressive 巨字形成双极对比 */
+
+  /* category label / eyebrow / section tag — small, bold, uppercase */
+  .t-cat{
+    font-family:var(--mono);
+    font-size:14px;font-weight:600;
+    letter-spacing:.15em;text-transform:uppercase;
+    color:var(--text-helper);line-height:1.3
+  }
+  .t-cat.accent{color:var(--accent)}
+  .t-cat.on-dark{color:rgba(255,255,255,.78)}
+
+  /* page chrome / breadcrumb / running header — extra-small mono */
+  .t-meta{
+    font-family:var(--mono);
+    font-size:14px;font-weight:500;
+    letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-helper);line-height:1.45
+  }
+
+  /* helper / caption — secondary text */
+  .t-helper{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:14px;font-weight:400;
+    color:var(--text-helper);line-height:1.5;
+    letter-spacing:.005em
+  }
+
+  /* body small — list items, table rows, captions */
+  .t-body-sm{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:16px;font-weight:400;
+    color:var(--text-secondary);line-height:1.55;
+    letter-spacing:0
+  }
+
+  /* body — paragraphs, descriptions */
+  .t-body{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:18px;font-weight:400;
+    color:var(--text-primary);line-height:1.5;
+    letter-spacing:-.005em
+  }
+
+  /* body emphasis — 强调正文 */
+  .t-body-emp{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:18px;font-weight:600;       /* SemiBold per Carbon */
+    color:var(--text-primary);line-height:1.5;
+    letter-spacing:-.005em
+  }
+
+  /* productive heading — section title within slide */
+  .t-h-prod{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:22px;font-weight:600;
+    color:var(--text-primary);line-height:1.4;
+    letter-spacing:-.01em
+  }
+
+  /* dark background variants */
+  .slide.dark .t-cat,.slide.dark .t-meta,.slide.dark .t-helper{color:rgba(255,255,255,.62)}
+  .slide.dark .t-body-sm{color:rgba(255,255,255,.78)}
+  .slide.dark .t-body,.slide.dark .t-body-emp,.slide.dark .t-h-prod{color:var(--paper)}
+  .split-half .half.b-ink .t-cat,.split-half .half.b-ink .t-meta,.split-half .half.b-ink .t-helper{color:rgba(255,255,255,.62)}
+  .split-half .half.b-ink .t-body-sm{color:rgba(255,255,255,.78)}
+  .split-half .half.b-ink .t-body,.split-half .half.b-ink .t-body-emp,.split-half .half.b-ink .t-h-prod{color:var(--paper)}
+
+  /* 斜杠点阵装饰 (参考图 6 左下) */
+  .hatch{
+    background-image:repeating-linear-gradient(135deg,currentColor 0 1px,transparent 1px 8px);
+    opacity:.55
+  }
+
+  /* ========== V3: 高级点阵装饰 — 圆点 / × 号 / 圆圈 ========== */
+  /* 实心圆点矩阵 — 用于大面积装饰 */
+  .dot-mat{
+    --d:14px;
+    background-image:radial-gradient(currentColor 1.4px,transparent 1.6px);
+    background-size:var(--d) var(--d);
+    background-position:0 0;
+    opacity:.5
+  }
+  .dot-mat.lg{--d:22px}
+  .dot-mat.xl{--d:34px}
+  .dot-mat.dense{--d:9px;opacity:.62}
+
+  /* 描边圆圈矩阵 — 工业感 */
+  .ring-mat{
+    --d:18px;
+    background-image:
+      radial-gradient(circle at 50% 50%,transparent 2px,currentColor 2px,currentColor 2.6px,transparent 2.7px);
+    background-size:var(--d) var(--d);
+    opacity:.55
+  }
+  .ring-mat.lg{--d:28px}
+
+  /* × 号矩阵 — SVG mask 实现真正的 × 网格平铺 */
+  .cross-mat{
+    --d:22px;
+    background-color:currentColor;
+    -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g stroke='black' stroke-width='1.4' stroke-linecap='round' fill='none'><line x1='8' y1='8' x2='14' y2='14'/><line x1='14' y1='8' x2='8' y2='14'/></g></svg>");
+            mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g stroke='black' stroke-width='1.4' stroke-linecap='round' fill='none'><line x1='8' y1='8' x2='14' y2='14'/><line x1='14' y1='8' x2='8' y2='14'/></g></svg>");
+    -webkit-mask-size:var(--d) var(--d);
+            mask-size:var(--d) var(--d);
+    -webkit-mask-repeat:repeat;mask-repeat:repeat;
+    opacity:.42
+  }
+  .cross-mat.lg{--d:32px}
+
+  /* ========== V3: 几何水平柱状图 ========== */
+  /* 横向柱图: 标签列 + 柱体列 + 数值列 — 严格瑞士网格 */
+  .h-bar-chart{
+    display:grid;
+    grid-template-columns:11em minmax(0,1fr) 8em;
+    gap:1.6vh 1.6vw;
+    align-items:center;
+    margin-top:2.4vh;
+    font-feature-settings:"tnum"
+  }
+  .h-bar-chart .row-lbl{
+    font-family:var(--sans),var(--sans-zh);
+    font-weight:500;
+    font-size:max(14px,1vw);
+    letter-spacing:-.005em;
+    text-align:left
+  }
+  .h-bar-chart .row-track{
+    height:3.2vh;
+    background:var(--grey-1);
+    position:relative;
+    overflow:hidden
+  }
+  .h-bar-chart .row-fill{
+    height:100%;
+    background:var(--ink);
+    transition:width 1s cubic-bezier(.5,0,.2,1)
+  }
+  .h-bar-chart .row-fill.accent{background:var(--accent)}
+  .h-bar-chart .row-fill.grey{background:var(--grey-3)}
+  .h-bar-chart .row-val{
+    font-family:var(--sans);font-weight:250;
+    font-size:max(16px,1.5vw);
+    letter-spacing:-.02em;
+    line-height:1
+  }
+  .h-bar-chart .row-val .unit{
+    font-size:.5em;opacity:.55;font-weight:300;
+    margin-left:.15em;letter-spacing:.04em
+  }
+
+  /* 垂直柱图: 用于 KPI 对比页(章节 P8) */
+  .v-bar-chart{
+    display:grid;
+    grid-template-columns:repeat(var(--cols,4),1fr);
+    align-items:end;
+    gap:1.4vw;
+    height:50vh;
+    margin-top:3vh
+  }
+  .v-bar-chart .col{display:flex;flex-direction:column;gap:1.4vh;align-items:stretch;height:100%}
+  .v-bar-chart .col-bar{
+    flex:1 1 auto;
+    background:var(--grey-1);
+    border-top:2px solid var(--ink);
+    position:relative;
+    display:flex;align-items:flex-start;justify-content:center;
+    padding-top:1vh
+  }
+  .v-bar-chart .col-bar.accent{background:var(--accent);border-top-color:var(--accent);color:var(--accent-on)}
+  .v-bar-chart .col-bar.ink{background:var(--ink);color:var(--paper);border-top-color:var(--ink)}
+  .v-bar-chart .col-bar .v{
+    font-family:var(--sans);font-weight:250;
+    font-size:max(18px,1.6vw);letter-spacing:-.02em
+  }
+  .v-bar-chart .col-lbl{
+    font-family:var(--mono);font-size:max(14px,.78vw);
+    letter-spacing:.14em;text-transform:uppercase;opacity:.6;
+    text-align:center;flex:0 0 auto
+  }
+
+  /* 对仗对比双栏 (章节 P9) */
+  .duo-compare{
+    display:grid;grid-template-columns:1fr 1px 1fr;
+    gap:0 3.4vw;
+    flex:1;align-items:stretch;margin-top:8vh
+  }
+  .duo-compare .vrule{background:var(--grey-2);width:1px;align-self:stretch}
+  .duo-compare .col{display:flex;flex-direction:column;gap:1.6vh;padding:0 .4vw}
+  .duo-compare .col-tag{
+    font-family:var(--mono);font-size:max(14px,.78vw);
+    letter-spacing:.16em;text-transform:uppercase;
+    color:var(--grey-3);
+    display:flex;align-items:center;gap:.6vw
+  }
+  .duo-compare .col-tag .num{
+    font-weight:600;color:var(--ink);
+    border:1px solid var(--ink);
+    padding:.2em .6em;font-size:.92em
+  }
+  .duo-compare .col.accent .col-tag .num{color:var(--accent);border-color:var(--accent)}
+  .duo-compare .col-ttl{
+    font-family:var(--sans),var(--sans-zh);font-weight:200;
+    font-size:3.6vw;line-height:1;letter-spacing:-.03em
+  }
+  .duo-compare .col.accent .col-ttl{color:var(--accent)}
+  .duo-compare .col-desc{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:max(16px,1.04vw);line-height:1.55;opacity:.78;
+    max-width:30vw
+  }
+  .duo-compare .col-list{
+    list-style:none;display:flex;flex-direction:column;gap:1vh;
+    margin-top:auto;padding-top:2vh;border-top:1px solid var(--grey-2)
+  }
+  .duo-compare .col-list li{
+    font-family:var(--sans),var(--sans-zh);
+    font-size:max(16px,.94vw);line-height:1.5;
+    padding-left:1.4em;position:relative
+  }
+  .duo-compare .col-list li::before{
+    content:"";position:absolute;left:0;top:.6em;
+    width:.5em;height:1px;background:currentColor;opacity:.55
+  }
+  .duo-compare .col.accent .col-list li::before{background:var(--accent);opacity:1}
+
+  /* 半屏 statement (参考图 7) */
+  .split-half{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1;align-items:stretch}
+  .split-half > .half{padding:5vh 3.4vw;display:flex;flex-direction:column;min-width:0}
+  .split-half > .half.r-border{border-left:1px solid rgba(127,127,127,.22)}
+  .split-half > .half.b-grey{background:var(--grey-1)}
+  .split-half > .half.b-accent{background:var(--accent);color:var(--accent-on)}
+  .split-half > .half.b-ink{background:var(--ink);color:var(--paper)}
+
+  /* 极简页眉 — t-meta 风格 (Carbon productive label-01) */
+  .canvas-card .chrome-min{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    font-family:var(--mono);font-size:14px;font-weight:500;
+    letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-helper);
+    flex:0 0 auto;
+    margin-bottom:var(--sp-9);   /* 48px */
+  }
+  .canvas-card .chrome-min.tight{margin-bottom:var(--sp-7)}   /* 32px */
+  .canvas-card .chrome-min .l, .canvas-card .chrome-min .r{
+    max-width:48vw;line-height:1.5
+  }
+  .slide.dark .canvas-card .chrome-min,.split-half .half.b-ink .canvas-card .chrome-min{color:rgba(255,255,255,.62)}
+
+  /* 响应式降级 */
+  @media (max-width:900px){
+    .h-hero{font-size:16vw}
+    .h-hero-zh{font-size:13vw}
+    .h-xl{font-size:9vw}
+    .h-xl-zh{font-size:8vw}
+    .kpi-hero{font-size:32vw}
+    .kpi-big{font-size:16vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4,.grid-2-4-8{grid-template-columns:1fr}
+    .grid-12{grid-template-columns:repeat(6,1fr)}
+  }
+</style>
+</head>
+<body class="canvas-mode">
+<script>
+  // Windows 平台标记 — 雅黑没有 ExtraLight,需要字重补偿
+  if(/Win/i.test(navigator.platform || navigator.userAgentData?.platform || '')){
+    document.body.classList.add('is-win');
+  }
+  (function(){
+    const KEY = 'guizang-ppt-low-power';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stored = localStorage.getItem(KEY);
+    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
+    function updateHint(){
+      const hint = document.getElementById('hint');
+      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
+    }
+    window.__setLowPowerMode = function(on, opts={}){
+      window.__lowPowerMode = !!on;
+      document.body.classList.toggle('low-power', window.__lowPowerMode);
+      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
+      if(window.__lowPowerMode && document.getAnimations){
+        document.getAnimations().forEach(a=>a.cancel());
+      }
+      updateHint();
+      dispatchEvent(new CustomEvent('swiss-low-power-change', {detail:{on:window.__lowPowerMode}}));
+      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
+    };
+    document.body.classList.toggle('low-power', window.__lowPowerMode);
+    addEventListener('DOMContentLoaded', updateHint, {once:true});
+  })();
+</script>
+
+<canvas id="bg-grid" class="bg"></canvas>
+<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+
+<div id="deck">
+<section class="slide accent" data-animate="hero" data-layout="S01">
+  <div class="canvas-card">
+    <canvas class="ascii-bg" aria-hidden="true"></canvas>
+    <div class="chrome-min"><div class="l">六自由度机械臂仿真 Studio</div><div class="r">01 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:2.6vh">
+      <div data-anim="kicker" class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.22em">ARCHITECTURE & DATA FLOW REPORT</div>
+      <h1 data-anim="title" style="align-self:center;font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(7vw,12vh);line-height:.94;letter-spacing:-.025em;color:#fff">架构与<br/><span style="font-style:italic;font-weight:300">数据流</span>全景</h1>
+      <div data-anim="bottom" style="display:grid;grid-template-rows:auto auto;gap:1.6vh;border-top:1px solid rgba(255,255,255,.22);padding-top:2vh">
+        <div class="lead" style="max-width:52ch;color:rgba(255,255,255,.86);font-weight:300">基于 software_architecture_visual 报告 — 含 6 幅架构图、4 张完整数据表、全部变量传递路径与源码索引。</div>
+        <div style="display:flex;justify-content:space-between;align-items:end"><div class="t-meta" style="color:rgba(255,255,255,.6)">课程设计 · 赋能设计</div><div class="t-meta" style="color:rgba(255,255,255,.6)">Scroll / → 翻页</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§1 分层总架构</div><div class="r">02 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">ARCHITECTURE OVERVIEW · 4 LAYERS + PERSIST</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">五层架构：从持久化到视图</h2>
+      </div>
+      <div data-anim="up" style="flex:1"><svg viewBox="0 0 900 380" style="width:100%;height:auto">
+  <defs><marker id="ar" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+  <!-- Persist -->
+  <rect x="20" y="20" width="200" height="140" rx="0" fill="none" stroke="var(--border-subtle)" stroke-width="1.5"/>
+  <text x="120" y="44" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--text-primary)">Persist / 资源</text>
+  <rect x="32" y="56" width="176" height="28" rx="0" fill="var(--grey-1)"/><text x="120" y="74" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">config/robot_mdh_template.json</text>
+  <rect x="32" y="90" width="176" height="24" rx="0" fill="var(--grey-1)"/><text x="120" y="106" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">assets/ur5e/collision/*.stl</text>
+  <rect x="32" y="120" width="176" height="24" rx="0" fill="var(--grey-1)"/><text x="120" y="136" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">outputs/</text>
+  <!-- View -->
+  <rect x="300" y="20" width="220" height="120" rx="0" fill="none" stroke="var(--ink)" stroke-width="2"/>
+  <text x="410" y="44" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--text-primary)">View · 视图层</text>
+  <rect x="312" y="56" width="196" height="24" rx="0" fill="var(--paper)"/><text x="410" y="72" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">MainWindow</text>
+  <rect x="312" y="84" width="196" height="24" rx="0" fill="var(--paper)"/><text x="410" y="100" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">RobotCanvas / JointPlotCanvas</text>
+  <!-- ViewModel -->
+  <rect x="590" y="20" width="240" height="50" rx="0" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  <text x="710" y="44" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--accent)">ViewModel</text>
+  <text x="710" y="60" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">build_config / validate / 调用Service</text>
+  <!-- Service -->
+  <rect x="300" y="180" width="530" height="80" rx="0" fill="none" stroke="var(--border-strong)" stroke-width="1.5"/>
+  <text x="565" y="204" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--text-primary)">Service · 应用服务</text>
+  <rect x="312" y="216" width="115" height="28" rx="0" fill="var(--grey-1)"/><text x="370" y="234" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">SimulationService</text>
+  <rect x="435" y="216" width="115" height="28" rx="0" fill="var(--grey-1)"/><text x="493" y="234" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">TrajectoryService</text>
+  <rect x="558" y="216" width="125" height="28" rx="0" fill="var(--grey-1)"/><text x="621" y="234" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">LanguageTaskService</text>
+  <rect x="691" y="216" width="125" height="28" rx="0" fill="var(--grey-1)"/><text x="754" y="234" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">RobotProgramService</text>
+  <!-- Domain -->
+  <rect x="300" y="295" width="530" height="55" rx="0" fill="none" stroke="var(--ink)" stroke-width="2"/>
+  <text x="565" y="318" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--text-primary)">Domain · 领域核心</text>
+  <text x="565" y="338" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">SixDofRobot · simulator.py · trajectory.py</text>
+  <!-- Arrows -->
+  <line x1="180" y1="45" x2="296" y2="45" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="520" y1="45" x2="586" y2="45" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="610" y1="70" x2="380" y2="178" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="750" y1="70" x2="680" y2="178" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="420" y1="260" x2="420" y2="293" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="730" y1="260" x2="730" y2="293" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#ar)"/>
+  <line x1="260" y1="300" x2="296" y2="300" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="4,3"/>
+</svg></div>
+      <div data-anim="foot" style="display:flex;gap:2vw;font-size:max(13px,.78vw);color:var(--text-secondary);border-top:1px solid var(--border-subtle);padding-top:1vh">
+        <span>View 只管 Qt 界面</span><span>ViewModel 无 Qt 依赖</span><span>Service 编排用例</span><span>Model 纯数值计算</span><span>STL 仅可视化链路</span>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S19">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§1 架构详解</div><div class="r">03 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">FIVE LAYERS · RESPONSIBILITIES</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">五层职责与源码映射</h2>
+      </div>
+      <div data-anim="up" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5vw 2vw;font-size:max(14px,.84vw);line-height:1.5">
+        <div><div class="t-cat" style="color:var(--accent)">Persist</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)"><code>config/robot_mdh_template.json</code> — 启动时载入模板<br/><code>assets/ur5e/collision/*.stl</code> — 可选网格资源<br/><code>outputs/</code> — 导出结果目标目录</p></div>
+        <div><div class="t-cat">View</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)"><code>MainWindow</code> + <code>RobotCanvas</code> + <code>JointPlotCanvas</code><br/>Matplotlib 3D/2D 嵌入 Qt，消费标准评测字典</p></div>
+        <div><div class="t-cat" style="color:var(--accent)">ViewModel</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)"><code>SimulationViewModel</code> — build_config / validate /<br/>run_* / _wrap_track_result / summarize_results</p></div>
+        <div><div class="t-cat">Service</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)"><code>SimulationService</code> / <code>TrajectoryService</code><br/><code>LanguageTaskService</code> / <code>RobotProgramService</code></p></div>
+        <div><div class="t-cat" style="color:var(--accent)">Domain</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)"><code>SixDofRobot</code> — MDH 建模、FK/IK/雅可比<br/><code>trajectory.py</code> — 轨迹生成与评测<br/><code>simulator.py</code> — 默认仿真管线与导出</p></div>
+        <div><div class="t-cat">传递规则</div><p style="font-size:max(13px,.78vw);color:var(--text-secondary)">View 不嵌入 IK 迭代逻辑<br/>ViewModel 不依赖具体控件类型<br/>Service 不反向操纵界面状态<br/>Model 不依赖 Qt 等 GUI 框架</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§2.1 View 层状态</div><div class="r">04 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.6vh;overflow:hidden">
+      <div data-anim="head"><div class="t-meta">VIEW LAYER · MainWindow STATE</div></div>
+      <div data-anim="up" style="flex:1;overflow-y:auto;font-size:max(12px,.72vw);line-height:1.45">
+        <table style="width:100%;border-collapse:collapse;font-size:inherit">
+          <thead><tr style="background:var(--ink);color:var(--paper)"><th style="padding:6px 8px;text-align:left">成员 / 控件</th><th style="padding:6px 8px;text-align:left">类型或产出</th><th style="padding:6px 8px;text-align:left">在数据流中的作用</th></tr></thead>
+          <tbody>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>viewmodel</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>SimulationViewModel</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">Qt 视图与无 Qt ViewModel 的分界；所有业务编排经此对象</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>parameter_table</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">表格 → <code>list[dict]</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>_collect_link_rows</code> → <code>build_config(link_rows, ...)</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>q_init_edit / q_goal_edit</code><br/><code>duration_edit / steps_edit</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">字符串 → 数值</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">写入 <code>config["default_state"]</code>、<code>config["simulation_defaults"]</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">轨迹面板</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">控件值</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>build_trajectory_command</code> → <code>TrajectoryCommand</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>command_edit</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>str</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">自然语言 → <code>parse_task_blocks</code>；驱动可行性定时器</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>task_table</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">表格 ⇄ <code>TaskBlock</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>_collect_task_blocks_from_table()</code> → <code>run_task_blocks</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>current_results</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>dict | None</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>fk_demo</code>、<code>ptp</code>、<code>cartesian_track</code>、<code>active_config</code> — 绑定 3D、关节曲线与文本</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>current_robot</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>SixDofRobot | None</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">与画布一致的 FK 几何实例</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>current_task_blocks</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>list[TaskBlock]</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">解析后与任务表保持同步</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>animation_result / frame</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">轨迹快照 + 帧索引</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">播放器按时间片消费 <code>q_rad</code>、<code>position_m</code> 等数组字段</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>feasibility_label</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>QLabel</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>precheck_task_blocks</code> + <code>summarize_precheck</code> 的可行性摘要</td></tr>
+<tr><td style="padding:5px 8px;"><code>robot_canvas / joint_canvas</code><br/><code>result_box</code></td><td style="padding:5px 8px;">控件</td><td style="padding:5px 8px;"><strong>消费端</strong>：robot + results 的字典与时间序列字段</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§2.2 ViewModel</div><div class="r">05 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.6vh;overflow:hidden">
+      <div data-anim="head"><div class="t-meta">VIEWMODEL · SimulationViewModel 入参→出参</div></div>
+      <div data-anim="up" style="flex:1;overflow-y:auto;font-size:max(12px,.72vw);line-height:1.4">
+        <table style="width:100%;border-collapse:collapse;font-size:inherit">
+          <thead><tr style="background:var(--ink);color:var(--paper)"><th style="padding:6px 8px;text-align:left">方法</th><th style="padding:6px 8px;text-align:left">典型入参</th><th style="padding:6px 8px;text-align:left">返回值要点</th><th style="padding:6px 8px;text-align:left">消费者</th></tr></thead>
+          <tbody>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>build_config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>link_rows, q_init_deg, q_goal_deg, duration_s, steps</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">完整 <code>config: dict</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">validate → run_*</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>validate_config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">无（异常即失败）</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">仿真与轨迹管线</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>robot_from_config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>SixDofRobot</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>current_robot</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>run_simulation</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>fk_demo, ptp, cartesian_track</code><br/>+ <code>active_config</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">默认 PTP/笛卡尔<br/>整条仿真链路</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>run_trajectory_command</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code> + <code>TrajectoryCommand</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>_wrap_track_result</code><br/>顶层键同上</td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">单段几何轨迹仿真</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>run_task_blocks</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code> + <code>list[TaskBlock]</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">同上；<code>cartesian_track</code><br/>内含 <code>task_blocks</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">多段自然语言/<br/>任务表执行</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>precheck_task_blocks</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code> + <code>TaskBlock[]</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>precheck dict</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>feasibility_label</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>parse_task_blocks</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">自然语言 <code>str</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>list[TaskBlock]</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>current_task_blocks</code></td></tr>
+<tr><td style="padding:5px 8px;"><code>_wrap_track_result</code></td><td style="padding:5px 8px;"><code>track_result</code></td><td style="padding:5px 8px;">合并 <code>run_fk</code>: <code>fk_demo</code>、<code>ptp</code>、<code>cartesian_track</code>、<code>active_config</code></td><td style="padding:5px 8px;"><code>current_results</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:max(12px,.72vw);color:var(--text-helper);border-top:1px solid var(--border-subtle);padding-top:1vh">⚠ 所有轨迹相关入口最终经 <code>_wrap_track_result</code> 对齐为同一外层键集合，降低 View 侧分支复杂度。</div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§2.3 端到端数据流</div><div class="r">06 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.4vh">
+      <div data-anim="head"><div class="t-meta">END-TO-END · PAYLOAD ON ARROWS</div></div>
+      <div data-anim="up" style="flex:1;overflow:hidden"><svg viewBox="0 0 900 400" style="width:100%;height:auto">
+  <defs><marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="var(--ink)"/></marker></defs>
+  <!-- View -->
+  <rect x="15" y="15" width="250" height="140" rx="0" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="140" y="36" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--text-primary)">MainWindow (View)</text>
+  <rect x="25" y="48" width="110" height="22" rx="0" fill="var(--grey-1)"/><text x="80" y="63" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">控件输入</text>
+  <rect x="145" y="48" width="110" height="22" rx="0" fill="var(--grey-1)"/><text x="200" y="63" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">状态缓存</text>
+  <rect x="25" y="82" width="230" height="22" rx="0" fill="var(--grey-1)"/><text x="140" y="97" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">parameter_table / q_edit / command_edit / task_table</text>
+  <rect x="25" y="110" width="230" height="22" rx="0" fill="var(--paper)"/><text x="140" y="125" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">current_results / current_robot / frame</text>
+  <!-- ViewModel -->
+  <rect x="320" y="15" width="250" height="140" rx="0" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  <text x="445" y="36" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">SimulationViewModel</text>
+  <rect x="330" y="48" width="230" height="18" rx="0" fill="none"/><text x="445" y="60" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">build_config / validate_config</text>
+  <rect x="330" y="70" width="230" height="18" rx="0" fill="none"/><text x="445" y="82" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">run_simulation / run_trajectory_command</text>
+  <rect x="330" y="92" width="230" height="18" rx="0" fill="none"/><text x="445" y="104" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">_wrap_track_result / parse_task_blocks</text>
+  <rect x="330" y="114" width="230" height="18" rx="0" fill="none"/><text x="445" y="126" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">robot_from_config / precheck</text>
+  <!-- Service -->
+  <rect x="630" y="15" width="250" height="60" rx="0" fill="none" stroke="var(--border-strong)" stroke-width="1.5"/>
+  <text x="755" y="36" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--text-primary)">Service</text>
+  <text x="755" y="54" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">TrajectoryService.run_commands</text>
+  <text x="755" y="68" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">SimulationService.run_default</text>
+  <!-- Domain -->
+  <rect x="630" y="90" width="250" height="40" rx="0" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="755" y="110" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-primary)">SixDofRobot + IK + evaluate_trajectory</text>
+  <!-- Arrows -->
+  <line x1="265" y1="60" x2="318" y2="60" stroke="var(--ink)" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="265" y1="100" x2="318" y2="100" stroke="var(--ink)" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="570" y1="55" x2="628" y2="55" stroke="var(--accent)" stroke-width="1" marker-end="url(#a2)"/>
+  <line x1="570" y1="100" x2="628" y2="100" stroke="var(--accent)" stroke-width="1" marker-end="url(#a2)"/>
+  <!-- Bottom: output to View -->
+  <rect x="15" y="180" width="865" height="30" rx="0" fill="var(--grey-1)"/>
+  <text x="450" y="200" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--text-primary)">← 返回：{ fk_demo, ptp, cartesian_track, active_config } → View 消费（画布、文本、导出）</text>
+  <!-- View outputs -->
+  <rect x="15" y="230" width="270" height="50" rx="0" fill="none" stroke="var(--border-subtle)" stroke-width="1"/>
+  <text x="150" y="252" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">robot_canvas / joint_canvas</text>
+  <text x="150" y="270" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">result_box / feasibility_label</text>
+  <rect x="310" y="230" width="570" height="50" rx="0" fill="none" stroke="var(--border-subtle)" stroke-width="1"/>
+  <text x="595" y="252" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-secondary)">播放(animation_result/frame) · 轨迹面板 · 导出写盘 · 虚拟下发</text>
+  <line x1="450" y1="210" x2="150" y2="228" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="450" y1="210" x2="600" y2="228" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="3,3"/>
+</svg></div>
+      <div data-anim="foot" style="font-size:max(13px,.78vw);color:var(--text-secondary);border-top:1px solid var(--border-subtle);padding-top:1vh">与 <code>MainWindow._build_active_config</code>、<code>_wrap_track_result</code>、<code>TrajectoryService.run_commands</code> 对齐。</div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§2.4 current_results</div><div class="r">07 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.6vh;overflow:hidden">
+      <div data-anim="head"><div class="t-meta">RESULTS BUNDLE · 顶层键结构</div></div>
+      <div data-anim="up" style="font-size:max(12px,.72vw);line-height:1.5">
+        <table style="width:100%;border-collapse:collapse;font-size:inherit;margin-bottom:1.6vh">
+          <thead><tr style="background:var(--ink);color:var(--paper)"><th style="padding:6px 8px;text-align:left;width:25%">键</th><th style="padding:6px 8px;text-align:left">说明（消费者）</th></tr></thead>
+          <tbody>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>fk_demo</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>SimulationService.run_fk(config)</code>：静态 FK 预览（轨迹包装路径）</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>ptp</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>cartesian_track</code> 的深拷贝（仅 <code>summary.trajectory_type</code> 改为预览语义）</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)"><code>cartesian_track</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--border-subtle)">轨迹服务输出的<strong>主时间序列字典</strong>。画布、播放器、导出与误差卡片主要读此项。</td></tr>
+<tr><td style="padding:5px 8px;"><code>active_config</code></td><td style="padding:5px 8px;">本次运行使用的 <code>config</code> 快照；重现 <code>SixDofRobot</code>。</td></tr>
+          </tbody>
+        </table>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2vw;font-size:max(11px,.68vw);line-height:1.45;color:var(--text-secondary)">
+          <div><div class="t-cat" style="margin-bottom:.4vh">cartesian_track 阵列与时间</div><code>time_s</code>、<code>q_rad/q_deg</code>、<code>position_m</code>、<code>desired_position_m</code>、<code>rpy_deg</code>、<code>transforms</code></div>
+          <div><div class="t-cat" style="margin-bottom:.4vh">summary + metrics</div><code>summary</code>: 机器人名/source/trajectory_type/采样数<br/><code>metrics</code>: max/mean position_error + ik_failure_count/ratio + max_jacobian_condition + near_singular_count + 关节步长 + 地面/连杆间隙</div>
+          <div><div class="t-cat" style="margin-bottom:.4vh">命令与诊断</div><code>precheck</code>、<code>commands/requested_commands</code>、<code>command/requested_command</code>、<code>segment_diagnostics</code></div>
+          <div><div class="t-cat" style="margin-bottom:.4vh">多任务附加</div><code>task_blocks</code>（仅 <code>run_task_blocks</code> 路径）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§3 Config 传递</div><div class="r">08 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh">
+      <div data-anim="head"><div class="t-meta">CONFIG & SIXDOFROBOT · DATA FLOW</div></div>
+      <div data-anim="up"><svg viewBox="0 0 800 160" style="width:100%;height:auto">
+  <defs><marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="var(--accent)"/></marker></defs>
+  <rect x="15" y="15" width="210" height="110" rx="0" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="120" y="38" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--text-primary)">界面</text>
+  <text x="120" y="58" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">parameter_table (六行DH)</text>
+  <text x="120" y="78" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">q_init / q_goal</text>
+  <text x="120" y="98" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">duration_s / steps</text>
+  <line x1="225" y1="65" x2="278" y2="65" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#a3)"/>
+  <rect x="280" y="15" width="190" height="110" rx="0" fill="none" stroke="var(--accent)" stroke-width="2"/>
+  <text x="375" y="38" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">SimulationViewModel</text>
+  <text x="375" y="60" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">build_config</text>
+  <text x="375" y="80" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">→ config: dict</text>
+  <text x="375" y="100" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">deepcopy(_config)</text>
+  <line x1="470" y1="65" x2="528" y2="65" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#a3)"/>
+  <rect x="530" y="15" width="250" height="110" rx="0" fill="none" stroke="var(--ink)" stroke-width="2"/>
+  <text x="655" y="38" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--text-primary)">Model</text>
+  <text x="655" y="60" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">load_robot_config(config)</text>
+  <text x="655" y="80" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">→ SixDofRobot</text>
+  <text x="655" y="100" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--text-secondary)">a_m, d_m, alpha_rad, base, tool…</text>
+</svg></div>
+      <div data-anim="foot" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5vw;font-size:max(13px,.78vw);line-height:1.5;color:var(--text-secondary);border-top:1px solid var(--border-subtle);padding-top:1.4vh">
+        <div><strong>界面 → ViewModel</strong><br/>parameter_table 六行 DH 参数 + q_init/q_goal/duration/steps → <code>build_config</code> 合并为 config dict</div>
+        <div><strong>ViewModel → Model</strong><br/>config 经 <code>load_robot_config</code> 深拷贝 → <code>SixDofRobot</code> 实例化 a_m/d_m/alpha_rad/base/tool</div>
+        <div><strong>Model → 所有 Service</strong><br/>同一 config 实例化机器人，所有 Service 共享几何与运动学语义，保证参数一致性</div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§4 轨迹指令时序</div><div class="r">09 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.4vh">
+      <div data-anim="head"><div class="t-meta">SINGLE TRAJECTORY · SEQUENCE DIAGRAM</div></div>
+      <div data-anim="up" style="flex:1;overflow:hidden"><svg viewBox="0 0 900 380" style="width:100%;height:auto">
+  <defs><marker id="a4" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="var(--accent)"/></marker></defs>
+  <!-- headers -->
+  <rect x="40" y="10" width="100" height="28" rx="0" fill="var(--ink)"/><text x="90" y="29" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--paper)">MainWindow</text>
+  <rect x="220" y="10" width="140" height="28" rx="0" fill="var(--ink)"/><text x="290" y="29" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--paper)">SimulationViewModel</text>
+  <rect x="440" y="10" width="120" height="28" rx="0" fill="var(--ink)"/><text x="500" y="29" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--paper)">TrajectoryService</text>
+  <rect x="660" y="10" width="100" height="28" rx="0" fill="var(--ink)"/><text x="710" y="29" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--paper)">SixDofRobot</text>
+  <!-- lifelines -->
+  <line x1="90" y1="38" x2="90" y2="340" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="290" y1="38" x2="290" y2="340" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="500" y1="38" x2="500" y2="340" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="710" y1="38" x2="710" y2="340" stroke="var(--border-subtle)" stroke-width="1" stroke-dasharray="4,4"/>
+  <!-- messages -->
+  <line x1="90" y1="60" x2="286" y2="60" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="95" y="54" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">build_config()</text>
+  <line x1="90" y1="90" x2="286" y2="90" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="95" y="84" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">build_trajectory_command()</text>
+  <line x1="290" y1="120" x2="496" y2="120" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="295" y="114" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">run_command(config, command)</text>
+  <line x1="500" y1="150" x2="706" y2="150" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="505" y="144" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">SixDofRobot(config)</text>
+  <!-- note -->
+  <rect x="500" y="170" width="220" height="28" rx="0" fill="none" stroke="var(--border-subtle)" stroke-width="1"/>
+  <text x="610" y="188" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">desired 点序列 · IK 步进 · q_track</text>
+  <line x1="500" y1="210" x2="286" y2="210" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#a4)"/>
+  <text x="300" y="204" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">← track_result(dict)</text>
+  <line x1="290" y1="240" x2="94" y2="240" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#a4)"/>
+  <text x="100" y="234" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">← fk_demo, ptp, cartesian_track</text>
+  <line x1="90" y1="270" x2="286" y2="270" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="95" y="264" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">robot_from_config(config)</text>
+  <line x1="290" y1="295" x2="706" y2="295" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a4)"/>
+  <text x="295" y="289" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">SixDofRobot(config) 再现实例</text>
+  <rect x="40" y="320" width="770" height="24" rx="0" fill="var(--grey-1)"/>
+  <text x="425" y="337" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-primary)">→ update_plot(robot, ptp, cartesian_track) · 更新 RobotCanvas + JointPlotCanvas</text>
+</svg></div>
+      <div data-anim="foot" style="font-size:max(13px,.78vw);color:var(--text-secondary);border-top:1px solid var(--border-subtle);padding-top:1vh">流程：build_config → build_trajectory_command → run_command → SixDofRobot → IK步进 → track_result → _wrap → update_plot</div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§5 自然语言任务</div><div class="r">10 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh">
+      <div data-anim="head"><div class="t-meta">NATURAL LANGUAGE · RULE-BASED PARSING</div></div>
+      <div data-anim="up"><svg viewBox="0 0 800 110" style="width:100%;height:auto">
+  <defs><marker id="a5" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="var(--accent)"/></marker></defs>
+  <rect x="20" y="35" width="130" height="35" rx="0" fill="var(--grey-1)" stroke="var(--border-subtle)" stroke-width="1"/>
+  <text x="85" y="56" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-primary)">command_edit 文本</text>
+  <line x1="150" y1="52" x2="185" y2="52" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a5)"/>
+  <rect x="188" y="25" width="175" height="55" rx="0" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="275" y="44" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--accent)">LanguageTaskService</text>
+  <text x="275" y="60" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">parse() · 规则 + 正则</text>
+  <text x="275" y="73" text-anchor="middle" font-family="var(--mono)" font-size="7" fill="var(--text-secondary)">→ TaskBlock 列表</text>
+  <line x1="363" y1="52" x2="400" y2="52" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a5)"/>
+  <rect x="403" y="35" width="150" height="35" rx="0" fill="var(--grey-1)" stroke="var(--border-subtle)" stroke-width="1"/>
+  <text x="478" y="56" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-primary)">to_command()</text>
+  <line x1="553" y1="52" x2="588" y2="52" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#a5)"/>
+  <rect x="591" y="35" width="185" height="35" rx="0" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="683" y="56" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--text-primary)">TrajectoryService.run_commands</text>
+</svg></div>
+      <div data-anim="foot" style="display:grid;grid-template-columns:1fr 1fr;gap:2vw;font-size:max(13px,.78vw);line-height:1.5;color:var(--text-secondary);border-top:1px solid var(--border-subtle);padding-top:1.4vh">
+        <div><div class="t-cat" style="color:var(--accent);margin-bottom:.3vh">LanguageTaskService.parse()</div>基于<strong>规则 + 正则表达式</strong>的确定性离线解析。同输入稳定输出 TaskBlock 列表，便于实验记录与课程报告复现。<strong>非大模型</strong>，覆盖面受规则限制但输出结构可预期。</div>
+        <div><div class="t-cat" style="color:var(--accent);margin-bottom:.3vh">TaskBlock → TrajectoryCommand</div>TaskBlock 定义结构化子任务（move_line / draw_circle / draw_helix + 几何参数 + 原文溯源）。经 <code>to_command()</code> 映射为 <code>TrajectoryCommand</code> 序列送入 <code>TrajectoryService.run_commands</code>。</div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">§6 核心数据形态</div><div class="r">11 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:1.6vh;overflow:hidden">
+      <div data-anim="head"><div class="t-meta">DATA TYPES · PRODUCER → CONSUMER</div></div>
+      <div data-anim="up" style="flex:1;overflow-y:auto;font-size:max(13px,.76vw);line-height:1.5">
+        <table style="width:100%;border-collapse:collapse;font-size:inherit">
+          <thead><tr style="background:var(--ink);color:var(--paper)"><th style="padding:6px 8px;text-align:left">变量/类型</th><th style="padding:6px 8px;text-align:left">产生于</th><th style="padding:6px 8px;text-align:left">含义</th><th style="padding:6px 8px;text-align:left">主要消费者</th></tr></thead>
+          <tbody>
+<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>config</code> (dict)</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">JSON + 界面<br/><code>build_config</code></td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">整份机器人与仿真默认参数</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>SixDofRobot</code>、各 Service</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>SixDofRobot</code></td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>SixDofRobot(config)</code></td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">FK / 约束 / Jacobian / IK</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">TrajectoryService、画布、导出</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>TrajectoryCommand</code></td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">UI 或 TaskBlock</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">单段轨迹几何与类型</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">TrajectoryService</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>TaskBlock</code></td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">LanguageTaskService</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">解析后的结构化子任务</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>run_task_blocks</code></td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>cartesian_track</code> (dict)</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)"><code>evaluate_trajectory</code><br/>+ TrajectoryService 增补</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">时间序列阵列 + summary + metrics + precheck + commands 等</td><td style="padding:6px 8px;border-bottom:1px solid var(--border-subtle)">3D、关节曲线、播放、导出、误差卡片</td></tr>
+<tr><td style="padding:6px 8px;"><code>results</code> (bundle)</td><td style="padding:6px 8px;"><code>run_simulation</code><br/>/ <code>_wrap_track_result</code></td><td style="padding:6px 8px;"><code>fk_demo</code>、<code>ptp</code>、<code>cartesian_track</code>、<code>active_config</code></td><td style="padding:6px 8px;"><code>current_results</code> 整包绑定 UI</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="six-cells" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">MDH 参数体系</div><div class="r">12 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">MODIFIED DH · SIX JOINTS · GENERIC 6R</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">MDH 六关节参数体系</h2>
+      </div>
+      <div class="cell-6" data-anim="grid">
+        <div class="cell"><span class="cell-num">J1</span><h4>底座回转</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0 α=90° d=0.18m<br/>-170° ~ 170°</p></div>
+        <div class="cell"><span class="cell-num">J2</span><h4>肩关节俯仰</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0.32m α=0 d=0<br/>-100° ~ 100°</p></div>
+        <div class="cell"><span class="cell-num">J3</span><h4>肘关节俯仰</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0.28m α=0 d=0<br/>-135° ~ 135°</p></div>
+        <div class="cell"><span class="cell-num">J4</span><h4>腕部回转</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0 α=90° d=0.12m<br/>-180° ~ 180°</p></div>
+        <div class="cell"><span class="cell-num">J5</span><h4>腕部俯仰</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0 α=-90° d=0<br/>-125° ~ 125°</p></div>
+        <div class="cell"><span class="cell-num">J6</span><h4>工具法兰回转</h4><p style="font-size:max(12px,.72vw);line-height:1.4">a=0 α=0 d=0.10m<br/>-360° ~ 360°</p></div>
+      </div>
+      <div style="font-size:max(12px,.72vw);color:var(--text-helper);display:flex;gap:2vw;border-top:1px solid var(--border-subtle);padding-top:1vh">
+        <span>默认初始关节角: [41.37,-35.43,47.2,43.55,49.29,7.18]°</span>
+        <span>默认仿真时长: 6s / 采样点: 181</span>
+        <span>offset 统一为 0</span>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S19">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">轨迹规划方法</div><div class="r">13 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">TRAJECTORY · THREE TYPES</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">三类轨迹规划方法</h2>
+      </div>
+      <div class="four-cards" data-anim="up">
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 01 / PTP</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">关节空间<br/>五次混合插补</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)"><code>quintic_blend(τ)</code> 在 τ∈[0,1] 上平滑插值<br/><code>joint_ptp_trajectory</code> 生成 (t, q_traj)<br/>不约束末端几何路径形态</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 02 / Cartesian</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">笛卡尔圆<br/>轨迹跟踪</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)"><code>cartesian_circle_positions</code> 生成采样点<br/><code>inverse_kinematics_position_only</code> 逐点跟踪<br/>IK 失败 → 回退参考轨迹</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 03 / Multi-seg</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">空间曲线<br/>多段命令</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">直线(move_line) / 圆(draw_circle)<br/>/ 空间螺旋(spatial_curve)<br/><code>TrajectoryService.run_commands</code> 分段跟踪</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 通用 / 评测</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">统一轨迹<br/>评测函数</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)"><code>evaluate_trajectory(robot, time_s, q_traj, desired_positions)</code><br/>→ summary + metrics + pose_trajectory<br/>所有仿真路径共用同一评测范式</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S08">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">运动学核心方法</div><div class="r">14 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2.4vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">KINEMATICS · FK ⇄ IK · MODIFIED DH</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">正运动学 ⇄ 逆运动学</h2>
+      </div>
+      <div class="duo-compare" data-anim="pair">
+        <div class="duo-half">
+          <div class="col-tag"><span class="num">FK</span></div>
+          <div class="col-ttl">正运动学</div>
+          <div class="col-desc"><code>SixDofRobot.fkine(q_rad)</code> — 沿连杆链累积 MDH 齐次变换，得到含 tool 变换的 4×4 末端位姿矩阵。</div>
+          <ul class="col-list">
+            <li>输入：关节角 q₁…q₆ (rad)</li>
+            <li>方法：逐节 <code>mdh_transform(a,α,d,θ)</code> 累乘</li>
+            <li>输出：位置 (x,y,z) + RPY 欧拉角</li>
+            <li>辅助：<code>forward_chain</code> 返回基座到TCP矩阵列表</li>
+          </ul>
+        </div>
+        <span class="vrule"></span>
+        <div class="duo-half">
+          <div class="col-tag accent"><span class="num">IK</span></div>
+          <div class="col-ttl" style="color:var(--accent)">逆运动学</div>
+          <div class="col-desc">阻尼最小二乘迭代：<code>numerical_jacobian → Δq = J⁺·e → q += Δq</code>，支持全位姿 IK 与位置优先 IK 两种模式。</div>
+          <ul class="col-list">
+            <li>全位姿 IK: 6×n 雅可比，位置+姿态误差</li>
+            <li>位置优先 IK: 3×n 雅可比分块</li>
+            <li>关节限位以区间裁剪施加于迭代中间变量</li>
+            <li>地面约束以平方惩罚标量 + 数值梯度软约束</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="timeline-walk" data-layout="S11">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">产品主链路</div><div class="r">15 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr auto;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">END-TO-END PIPELINE · 7 STEPS</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">端到端的七步产品链路</h2>
+      </div>
+      <div class="timeline-h" data-anim="nodes">
+        <span class="tl-h-axis"></span>
+        <div class="tl-h-node"><span class="num">01</span><span class="dot"></span><span class="lbl">自然语言<br/>输入任务</span></div>
+        <div class="tl-h-node"><span class="num">02</span><span class="dot"></span><span class="lbl">规则解析<br/>→TaskBlock</span></div>
+        <div class="tl-h-node"><span class="num">03</span><span class="dot"></span><span class="lbl">表格编辑<br/>调整顺序</span></div>
+        <div class="tl-h-node"><span class="num">04</span><span class="dot"></span><span class="lbl">轨迹生成<br/>离散末端路径</span></div>
+        <div class="tl-h-node"><span class="num">05</span><span class="dot"></span><span class="lbl">IK 跟踪<br/>关节序列</span></div>
+        <div class="tl-h-node"><span class="num">06</span><span class="dot"></span><span class="lbl">3D 可视化<br/>+ 误差诊断</span></div>
+        <div class="tl-h-node"><span class="num">07</span><span class="dot"></span><span class="lbl">导出下发<br/>DryRun 签收</span></div>
+      </div>
+      <div data-anim="foot" style="font-size:max(13px,.78vw);color:var(--text-secondary);line-height:1.5;border-top:1px solid var(--border-subtle);padding-top:1.4vh">全链路中界面只负责输入采集与结果呈现，数值内核（轨迹生成、IK、评测）统一经 Service 层封装调用。自然语言解析为离线规则方法，非大模型。</div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">UI 组件全景</div><div class="r">16 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh;overflow:hidden">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">USER INTERFACE · Qt + Matplotlib</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">UI 组件与数据绑定</h2>
+      </div>
+      <div data-anim="up" style="font-size:max(13px,.76vw);line-height:1.5">
+        <table style="width:100%;border-collapse:collapse;font-size:inherit">
+          <thead><tr style="background:var(--ink);color:var(--paper)"><th style="padding:6px 8px;text-align:left">组件</th><th style="padding:6px 8px;text-align:left">类型</th><th style="padding:6px 8px;text-align:left">消费的数据</th><th style="padding:6px 8px;text-align:left">产出/副作用</th></tr></thead>
+          <tbody>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>RobotCanvas</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">Matplotlib 3D</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>current_robot</code> + <code>cartesian_track</code> / <code>ptp</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">3D 姿态/轨迹/STL网格绘制</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>JointPlotCanvas</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">Matplotlib 2D</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>time_s</code> + <code>q_deg</code> 数组</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">关节角时间曲线</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>parameter_table</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QTableWidget</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">MDH 模板 (初始加载)</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>_collect_link_rows</code> → link_rows</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">q_init/goal/duration/steps</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QLineEdit</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">用户输入字符串</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">解析 → config dict 覆写</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>command_edit</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QTextEdit</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">自然语言文本</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">→ <code>parse_task_blocks</code></td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>task_table</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QTableWidget</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">TaskBlock 列表</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">编辑/删减/调整顺序</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>result_box</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QTextEdit</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>summarize_results</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">误差摘要 + metrics 文本</td></tr>
+<tr><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>feasibility_label</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">QLabel</td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)"><code>summarize_precheck</code></td><td style="padding:5px 7px;border-bottom:1px solid var(--border-subtle)">可行性摘要字符串</td></tr>
+<tr><td style="padding:5px 7px;">播放控件 + <code>animation_frame</code></td><td style="padding:5px 7px;">QSlider + 索引</td><td style="padding:5px 7px;"><code>cartesian_track</code> 数组</td><td style="padding:5px 7px;">帧索引 → <code>update_frame</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:max(12px,.7vw);color:var(--text-helper);border-top:1px solid var(--border-subtle);padding-top:1vh">界面采用现代简约风格（参考 Apple HIG）：清晰视觉层级、充足留白、浅色背景与白色卡片、蓝色主操作按钮。<code>qt_app/styles.py</code> 统一样式。</div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S04">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">3D 可视化</div><div class="r">17 / 20</div></div>
+    <div style="flex:1;padding:0;display:flex;flex-direction:column;gap:2vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">3D VISUALIZATION · UR5e STL + MATPLOTLIB</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">3D 可视化与 STL 装配</h2>
+      </div>
+      <div data-anim="up" style="display:grid;grid-template-columns:1fr 1fr;gap:2vw;font-size:max(13px,.78vw);line-height:1.5;color:var(--text-secondary)">
+        <div>
+          <div class="t-cat" style="color:var(--accent);margin-bottom:.6vh">UR5e STL 网格资源</div>
+          <p>七段碰撞 STL：base → shoulder → upperarm → forearm → wrist1 → wrist2 → wrist3，位于 <code>assets/ur5e/collision/</code>。可通过 <code>scripts/download_ur5e_meshes.py</code> 从公开 ROS2 镜像获取。</p>
+          <div class="t-cat" style="color:var(--accent);margin-bottom:.6vh;margin-top:1.2vh">两层装配变换</div>
+          <p><strong>相邻链路 FK 帧</strong>：<code>_ur5e_link_frames</code> 采用 UR 官方相邻连杆运动学，在每关节处右乘绕局部 Z 的转动 qᵢ。<br/><strong>MeshBinding 局部外参</strong>：每段 STL 绑定 frame_index + local_xyz/local_rpy 微调。</p>
+        </div>
+        <div>
+          <div class="t-cat" style="color:var(--accent);margin-bottom:.6vh">三 KPI 指标卡片效果</div>
+          <div style="display:flex;flex-direction:column;gap:1.4vh">
+            <div style="padding:1.2vh 1.2vw;border-left:2px solid var(--accent)"><strong style="color:var(--text-primary)">7 段 STL 链路</strong><br/>base·shoulder·upperarm·forearm·wrist1·wrist2·wrist3</div>
+            <div style="padding:1.2vh 1.2vw;border-left:2px solid var(--border-subtle)"><strong style="color:var(--text-primary)">2 层变换合成</strong><br/>UR 风格相邻链路 FK + MeshBinding local_xyz/rpy 微调</div>
+            <div style="padding:1.2vh 1.2vw;border-left:2px solid var(--accent)"><strong style="color:var(--text-primary)">自动回退策略</strong><br/>STL 缺失/不匹配 → RobotCanvas 自动退回圆柱/球近似骨架；双侧光照减轻暗缝</div>
+          </div>
+          <div class="t-cat" style="margin-top:1.4vh;margin-bottom:.4vh">关键设计约束</div>
+          <p>STL 外观为数值模型的<strong>并联关系</strong>：网格只增强观感，不参与 FK/IK/轨迹生成与评测。画布消费端通过 <code>UR5eVisualModel</code> 判断 supports(robot) && is_available() 决定绘制路径。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="why-now" data-layout="S18">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">设计原则</div><div class="r">18 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr;gap:4vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">DESIGN PRINCIPLES · THREE PILLARS</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">三大设计原则</h2>
+      </div>
+      <div class="why-now-grid" data-anim="cols">
+        <div class="why-col">
+          <span class="t-cat">PILLAR 01</span>
+          <h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin:1.2vh 0">关注点分离</h4>
+          <p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">View 不嵌入 IK 迭代逻辑；ViewModel 不依赖控件样式细节；Service 不反向操纵界面状态；Model 不依赖 Qt 等 GUI 框架。</p>
+          <div class="why-num-bottom" style="font-size:min(4.6vw,7vh)">01</div>
+        </div>
+        <div class="why-col">
+          <span class="t-cat">PILLAR 02</span>
+          <h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin:1.2vh 0">离线可复现</h4>
+          <p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">自然语言解析采用规则+正则的确定性方法，同输入下稳定输出 TaskBlock。轨迹评测可在固定配置下重复执行，便于回归与对标。</p>
+          <div class="why-num-bottom" style="font-size:min(4.6vw,7vh)">02</div>
+        </div>
+        <div class="why-col">
+          <span class="t-cat" style="color:var(--accent)">PILLAR 03</span>
+          <h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin:1.2vh 0">接口抽象与安全边界</h4>
+          <p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">算法替换时只需实现同一 Service 契约。真实硬件通过 RobotController 接口接入，不直接写在界面层。</p>
+          <div class="why-num-bottom" style="font-size:min(4.6vw,7vh);color:var(--accent)">03</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide" data-animate="grid-reveal" data-layout="S19">
+  <div class="canvas-card">
+    <div class="chrome-min"><div class="l">局限性与扩展</div><div class="r">19 / 20</div></div>
+    <div style="flex:1;padding:0;display:grid;grid-template-rows:auto 1fr;gap:3vh">
+      <div data-anim="head" style="display:flex;flex-direction:column;gap:.8vh">
+        <div class="t-meta">LIMITATIONS & FUTURE · 4 DIRECTIONS</div>
+        <h2 style="font-family:var(--sans),var(--sans-zh);font-weight:200;font-size:min(5vw,9vh);line-height:.96;letter-spacing:-.035em">局限性与未来扩展</h2>
+      </div>
+      <div class="four-cards" data-anim="up">
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 01 / 解析覆盖</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">自然语言解析</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">基于规则+正则，覆盖面有限。超出规则范围的表达需在报告中如实记录输入样例与系统响应。未来可替换为 LLM 语义解析模块。</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 02 / IK 收敛</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">逆运动学</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">阻尼迭代类数值方法受初值和奇异位形影响。虽含预检但不能理论保证全域跟踪成功。需结合 metrics 中的 IK 失败统计与雅可比条件数信息分析。</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 03 / 可视化</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">STL 外观</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">仅用于教学观感与数字孪生呈现，不构成高精度碰撞检测或干涉检查。缺失时自动退回折线/圆柱骨架，不影响仿真流水线。</p></div>
+        <div class="fc-col"><div class="t-meta" style="margin-bottom:1.6vh">— 04 / 安全边界</div><h4 style="font-size:max(16px,1.3vw);line-height:1.2;margin-bottom:1.2vh">真实硬件</h4><p style="font-size:max(13px,.78vw);line-height:1.55;color:var(--text-secondary)">DryRun 签收不构成工业场景下的功能安全认证。接真实机械臂前须补齐急停、限速、TCP 标定、安全互锁，并对仿真坐标与控制周期进行一致性验证。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slide split" data-animate="split-statement" data-layout="S09">
+  <div class="canvas-card">
+    <div class="split-half">
+      <div class="half b-accent" style="padding:4vh 3vw 3vh;justify-content:space-between;position:relative;overflow:hidden">
+        <canvas class="ascii-bg" aria-hidden="true"></canvas>
+        <div class="chrome-min" style="margin-bottom:0;position:relative;z-index:1"><div class="l">20 / 20</div><div class="r">CLOSING</div></div>
+        <div data-anim="manifesto" style="display:flex;flex-direction:column;gap:1.6vh;position:relative;z-index:1">
+          <div class="t-meta" style="color:rgba(255,255,255,.78);letter-spacing:.22em">MANIFESTO</div>
+          <h2 style="font-family:var(--sans),var(--sans-zh);font-size:min(6vw,10vh);line-height:.94;letter-spacing:-.025em;font-weight:200;color:#fff">架构分层<br/><span style="font-style:italic;font-weight:300">数据贯通</span></h2>
+          <div style="font-size:max(13px,.9vw);line-height:1.6;color:rgba(255,255,255,.82);font-weight:300;max-width:34ch">MVVM 解耦让数值内核可独立验证。统一评测字典让默认仿真与自定义轨迹在界面消费侧结构对齐。接口抽象为对接真实控制器预留清晰边界。</div>
+        </div>
+        <div data-anim="signature" style="display:flex;justify-content:space-between;align-items:end;border-top:1px solid rgba(255,255,255,.22);padding-top:1.4vh;position:relative;z-index:1">
+          <div class="t-meta" style="color:rgba(255,255,255,.62)">课程设计 · 赋能设计 · 六自由度机械臂</div>
+          <div class="t-meta" style="color:rgba(255,255,255,.62)">2026.06</div>
+        </div>
+      </div>
+      <div class="half" style="padding:4vh 3vw 3vh;justify-content:space-between">
+        <div class="chrome-min"><div class="l">源码索引</div><div class="r">7 FILES</div></div>
+        <div data-anim="rules" style="display:flex;flex-direction:column;gap:.4vh;font-size:max(12px,.72vw);line-height:1.5;color:var(--text-secondary)">
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">python/robot_model.py</code> SixDofRobot — MDH/FK/IK/Jacobian/约束</div>
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">python/services/trajectory_service.py</code> 轨迹跟踪与 IK 步进</div>
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">python/services/language_service.py</code> NL→TaskBlock</div>
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">qt_app/viewmodels/simulation_viewmodel.py</code> ViewModel 编排</div>
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">qt_app/views/main_window.py</code> 主界面与 _build_active_config</div>
+          <div style="padding:.6vh 0;border-bottom:1px solid var(--border-subtle)"><code style="background:var(--grey-1);padding:1px 5px">qt_app/widgets/robot_canvas.py</code> + <code>ur5e_visual_model.py</code> 3D与STL</div>
+          <div style="padding:.6vh 0;"><code style="background:var(--grey-1);padding:1px 5px">docs/software_architecture_visual.md</code> 架构与数据流可视化</div>
+        </div>
+        <div class="t-meta" style="color:var(--text-helper);text-align:right">→ 完 · END</div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="nav"></div>
+
+<script>
+/* =============== WebGL 网格背景 (瑞士风专用) ===============
+   极简移动网格 + 微弱点阵叠加,营造"工业感、精准感"
+   - 主网格: 缓慢漂移的细线网格
+   - 次级: 鼠标附近的极细点阵微扰
+   - 颜色: 跟随主题(浅底深线 / 深底亮线),配合 mix-blend-mode
+*/
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS = `precision highp float;
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform vec2 u_mouse;
+uniform float u_dark; // 0 = light, 1 = dark
+uniform vec3 u_accent;
+
+float gridLine(vec2 uv, float spacing, float thickness){
+  vec2 g = abs(fract(uv / spacing) - 0.5);
+  float d = min(g.x, g.y);
+  return 1.0 - smoothstep(thickness - 0.005, thickness + 0.005, d);
+}
+
+float dot2(vec2 p){ return dot(p,p); }
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+  float aspect = u_resolution.x / u_resolution.y;
+  vec2 p = uv;
+  p.x *= aspect;
+
+  // 缓慢平移
+  vec2 drift = vec2(u_time * 0.008, u_time * 0.005);
+  vec2 gp = p + drift;
+
+  // 主细网格 (大间距)
+  float mainGrid = gridLine(gp, 0.12, 0.012);
+  // 次级网格 (更细更密)
+  float subGrid = gridLine(gp, 0.024, 0.04) * 0.4;
+
+  // 鼠标附近的强化
+  vec2 m = u_mouse;
+  m.x *= aspect;
+  float md = length(p - m);
+  float mInfluence = exp(-md * 4.0) * 0.5;
+
+  float gridStrength = (mainGrid + subGrid * 0.5) * (0.45 + mInfluence);
+
+  // 点阵 (作为基底)
+  vec2 dotGrid = fract(gp * 50.0) - 0.5;
+  float dotMask = 1.0 - smoothstep(0.05, 0.14, length(dotGrid));
+  // 用低频噪声调制点阵密度
+  float wave = sin(gp.x * 1.4 + u_time * 0.15) * cos(gp.y * 1.6 - u_time * 0.12);
+  dotMask *= smoothstep(-0.3, 0.6, wave) * 0.6;
+
+  // 颜色: 浅底用深线条,深底用浅线条;高亮处带 accent 痕迹
+  vec3 lineColor = mix(vec3(0.08), vec3(0.92), u_dark);
+  vec3 bgColor = mix(vec3(0.97, 0.97, 0.96), vec3(0.06, 0.06, 0.07), u_dark);
+
+  // accent 暗示 (鼠标附近偷渡一点 accent 色)
+  vec3 col = bgColor;
+  col = mix(col, lineColor, gridStrength * 0.55);
+  col = mix(col, lineColor, dotMask * 0.35);
+  col = mix(col, u_accent, mInfluence * 0.18);
+
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=1-e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const lD=gl.getUniformLocation(prog,'u_dark');
+  const lA=gl.getUniformLocation(prog,'u_accent');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+
+  // 读取 CSS 变量,把 accent 颜色塞进 shader
+  function readAccent(){
+    const cs = getComputedStyle(document.documentElement);
+    const hex = cs.getPropertyValue('--accent').trim() || '#002FA7';
+    const m = hex.match(/^#([0-9a-f]{6})$/i);
+    if(!m) return [0, 0.18, 0.65];
+    const n = parseInt(m[1], 16);
+    return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
+  }
+  let accent = readAccent();
+  let dark = 0;
+
+  return (tSec, isDark)=>{
+    if(isDark !== undefined) dark = isDark ? 1 : 0;
+    accent = readAccent();
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,mouse.y);
+    gl.uniform1f(lD,dark);
+    gl.uniform3f(lA,accent[0],accent[1],accent[2]);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+// canvas-mode / low-power: skip WebGL draw loop (no active RAF loop)
+let darkMode=false;
+let gridCtrl=null, gridRAF=0, gridT0=Date.now();
+function startGrid(){
+  if(document.body.classList.contains('canvas-mode') || window.__lowPowerMode || gridRAF) return;
+  if(!gridCtrl) gridCtrl = bootGL('bg-grid',FS);
+  if(!gridCtrl) return;
+  gridT0=Date.now();
+  function loop(){
+    if(window.__lowPowerMode){gridRAF=0;return;}
+    const t=(Date.now()-gridT0)/1000;
+    gridCtrl(t, darkMode);
+    gridRAF=requestAnimationFrame(loop);
+  }
+  gridRAF=requestAnimationFrame(loop);
+}
+function stopGrid(){
+  if(gridRAF) cancelAnimationFrame(gridRAF);
+  gridRAF=0;
+}
+if(document.body.classList.contains('canvas-mode')){
+  const c=document.getElementById('bg-grid');
+  if(c) c.remove();
+}else{
+  startGrid();
+}
+addEventListener('swiss-low-power-change', e=>{e.detail.on ? stopGrid() : startGrid();});
+
+// =============== 导航 ===============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  window.__currentSlideIndex = idx;
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  const el=slides[idx];
+  const isDark = el.classList.contains('dark') || el.classList.contains('accent');
+  document.body.classList.toggle('dark-bg', isDark);
+  darkMode = isDark;
+  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+/* =============== ESC 索引视图 =============== */
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(250,250,248,.96);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;overflow:hidden;border:2px solid '+(i===idx?'var(--accent)':'rgba(0,0,0,.12)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(0,0,0,.4)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'var(--accent)':'rgba(0,0,0,.12)';
+    const wrap=document.createElement('div');
+    const isDark = s.classList.contains('dark') || s.classList.contains('accent');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(isDark?'var(--ink)':'var(--paper)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    /* ESC 索引卡 label */
+  label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault();
+    window.__setLowPowerMode(!window.__lowPowerMode);
+    return;
+  }
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
+    if(window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+1);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){
+    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
+      wheelAcc=0;
+    }else{
+      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
+    }
+  }
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+(dx<0?1:-1));
+  }
+},{passive:true});
+
+const initialSlideParam = new URLSearchParams(location.search).get('slide');
+const initialSlide = initialSlideParam ? Number(initialSlideParam) - 1 : 0;
+go(Number.isFinite(initialSlide) ? initialSlide : 0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+
+<!-- Motion One 动效引擎 (与原模板一致) -->
+<script type="module">
+let motion;
+try {
+  motion = await import('./assets/motion.min.js');
+} catch(e1) {
+  try {
+    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+  } catch(e2) {
+    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
+    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
+    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
+  }
+}
+
+if(motion){
+  const { animate } = motion;
+  document.body.classList.add('motion-ready');
+
+  /* ============================================================
+     IBM Carbon Motion · 每个 recipe 服务一种表达
+     不是一刀切的 stagger,而是把动效绑在内容语义上
+     ============================================================ */
+  const EASE_PROD       = [.2, 0, .38, .9];
+  const EASE_ENTRY_EXP  = [0, 0, .3, 1];
+
+  const slides = [...document.querySelectorAll('.slide')];
+  let lastIdx = -1;
+
+  function resetAnims(slide){
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='';
+      el.style.transform='';
+    });
+    /* 同时复位需要被 recipe 接管的元素 */
+    slide.querySelectorAll('.row-fill,.tl-node,.stack-block,.bar-tower,.sub-card,.col,.vrule,.kpi-cell')
+      .forEach(el=>{el.style.cssText = el.dataset._origCss || el.style.cssText;});
+  }
+
+  /* ---------- 通用工具 ---------- */
+  const fade = (el, opts={})=>animate(el,
+    {opacity:[0,1], y:[opts.y ?? 12, 0]},
+    {duration:opts.duration ?? .6, delay:opts.delay ?? 0,
+     easing:opts.easing ?? EASE_ENTRY_EXP});
+
+  /* ---------- recipe: hero · 封面索引 ----------
+     大编号一个个亮起 → 索引行最后落定 */
+  function rHero(slide, all){
+    const numRows = [...slide.querySelectorAll('.cover-row')];
+    const rest = all.filter(el=>!numRows.length || el !== numRows[0]);
+    /* 先入: chrome 240ms */
+    const chrome = slide.querySelector('.chrome-min');
+    if(chrome) animate(chrome, {opacity:[0,1]}, {duration:.24, easing:EASE_PROD});
+    /* 大编号 01/02/03 像点名一样依次亮 */
+    numRows.forEach((row, i)=>{
+      animate(row, {opacity:[0,1], x:[-12,0]},
+        {duration:.5, delay:.15 + i*.18, easing:EASE_ENTRY_EXP});
+    });
+    /* 索引底栏最后慢慢落定 */
+    const idx = slide.querySelector('[data-anim="line"]');
+    if(idx) fade(idx, {delay:.15 + numRows.length*.18 + .1, duration:.5, y:6});
+  }
+
+  /* ---------- recipe: progression · 1× → 10× → 1000× ----------
+     节点依次入场,每个节点的数字单独"递进生长"营造跃迁 */
+  function rProgression(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+
+    const nodes = [...slide.querySelectorAll('.tl-node')];
+    nodes.forEach((node, i)=>{
+      const base = .35 + i*.32;          /* 节点之间间隔大,营造时间感 */
+      /* 整个节点先轻微浮入 */
+      animate(node, {opacity:[0,1], y:[14, 0]},
+        {duration:.55, delay:base, easing:EASE_ENTRY_EXP});
+      /* 再让 multi(数字)从 .85 scale 弹到 1,延迟 100ms */
+      const multi = node.querySelector('.multi');
+      if(multi) animate(multi, {scale:[.92, 1], opacity:[0,1]},
+        {duration:.5, delay:base + .12, easing:EASE_ENTRY_EXP});
+    });
+
+    /* 底部 KPI 4 列最后落定,内部 60ms stagger */
+    const kpis = [...slide.querySelectorAll('.kpi-cell')];
+    kpis.forEach((cell, i)=>{
+      animate(cell, {opacity:[0,1], y:[8, 0]},
+        {duration:.4, delay:1.4 + i*.07, easing:EASE_PROD});
+    });
+  }
+
+  /* ---------- recipe: statement · 大宣言 ----------
+     左半屏标题逐行落下,右半屏 leaked 信息晚 600ms 进 */
+  function rStatement(slide, all){
+    const halves = [...slide.querySelectorAll('.half')];
+    if(halves.length === 2){
+      animate(halves[0], {opacity:[0,1], y:[18,0]},
+        {duration:.7, delay:0, easing:EASE_ENTRY_EXP});
+      animate(halves[1], {opacity:[0,1], y:[18,0]},
+        {duration:.7, delay:.6, easing:EASE_ENTRY_EXP});
+    } else {
+      /* P9 Index Card — 三行像盖章一样依次落 */
+      const head = slide.querySelector('[data-anim="line"]');
+      if(head) fade(head, {duration:.5, y:6});
+      const blocks = all.filter(el=>el !== head);
+      blocks.forEach((el, i)=>{
+        animate(el, {opacity:[0,1], y:[20,0]},
+          {duration:.55, delay:.25 + i*.18, easing:EASE_ENTRY_EXP});
+      });
+    }
+  }
+
+  /* ---------- recipe: grid-reveal · 五个定义 ----------
+     卡片按 nb-corner 序号 01→02→03→04→05→Σ 依次揭示 */
+  function rGridReveal(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+    const cards = [...slide.querySelectorAll('.sub-card')];
+    cards.forEach((card, i)=>{
+      animate(card, {opacity:[0,1], y:[20,0], scale:[.96, 1]},
+        {duration:.5, delay:.3 + i*.09, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: stack-build · 三层架构 ----------
+     中间 thin 先入 → 上层 fat skills 从顶推下 → 下层 application 从底推上 */
+  function rStackBuild(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+
+    const blocks = [...slide.querySelectorAll('.stack-block')];
+    /* 先入: 中间薄层(LAYER 02) */
+    if(blocks[1]) animate(blocks[1], {opacity:[0,1], scaleY:[.85, 1]},
+      {duration:.55, delay:.3, easing:EASE_ENTRY_EXP});
+    /* 上推下: LAYER 01 fat skills 从顶部 push down */
+    if(blocks[0]) animate(blocks[0], {opacity:[0,1], y:[-22, 0]},
+      {duration:.6, delay:.6, easing:EASE_ENTRY_EXP});
+    /* 下推上: LAYER 03 application 从底部 push up */
+    if(blocks[2]) animate(blocks[2], {opacity:[0,1], y:[22, 0]},
+      {duration:.6, delay:.6, easing:EASE_ENTRY_EXP});
+
+    const foot = slide.querySelector('.t-meta');
+    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
+  }
+
+  /* ---------- recipe: measure-up · YC KPI 塔 ----------
+     塔从底部 scaleY 0→1 生长 + 数字最后弹入 */
+  function rMeasureUp(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+
+    const towers = [...slide.querySelectorAll('.bar-tower')];
+    towers.forEach((tower, i)=>{
+      const block = tower.querySelector('.body-block');
+      if(block){
+        block.style.transformOrigin = 'bottom center';
+        animate(block, {opacity:[0,1], scaleY:[.05, 1]},
+          {duration:.7, delay:.35 + i*.12, easing:EASE_ENTRY_EXP});
+      }
+      /* cap (顶部图标) 等柱体长好后弹入 */
+      const cap = tower.querySelector('.cap');
+      if(cap) animate(cap, {opacity:[0,1], y:[-8, 0]},
+        {duration:.4, delay:.85 + i*.12, easing:EASE_PROD});
+    });
+  }
+
+  /* ---------- recipe: bar-grow · 90% 价值分布 ----------
+     标题先入 → hairline 从中点向两侧 stroke draw → bar 依次 width 0→target → 数值 fade in */
+  function rBarGrow(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+
+    /* 中部 hairline:从 100% width 0 拉到 100% (transformOrigin: center) */
+    const midRow = slide.querySelector('[data-anim="up"]');
+    if(midRow){
+      const midLabel = midRow.querySelector('.t-cat');
+      const midLine = midRow.querySelector('div[style*="height:1px"]');
+      if(midLabel) animate(midLabel, {opacity:[0,1], x:[-8,0]},
+        {duration:.4, delay:.4, easing:EASE_PROD});
+      if(midLine){
+        midLine.style.transformOrigin = 'center';
+        animate(midLine, {opacity:[0,1], scaleX:[0, 1]},
+          {duration:.55, delay:.5, easing:EASE_ENTRY_EXP});
+      }
+    }
+
+    /* bar 行依次 width 增长 */
+    const fills = [...slide.querySelectorAll('.row-fill')];
+    const labels = [...slide.querySelectorAll('.row-lbl')];
+    const values = [...slide.querySelectorAll('.row-val')];
+    fills.forEach((fill, i)=>{
+      const target = fill.style.width;
+      fill.style.width = '0%';
+      if(labels[i]) animate(labels[i], {opacity:[0,1], x:[-12,0]},
+        {duration:.4, delay:.85 + i*.14, easing:EASE_PROD});
+      animate(fill, {width:['0%', target]},
+        {duration:.65, delay:.95 + i*.14, easing:EASE_ENTRY_EXP});
+      if(values[i]) animate(values[i], {opacity:[0,1]},
+        {duration:.3, delay:1.5 + i*.14, easing:EASE_PROD});
+    });
+  }
+
+  /* ---------- recipe: duo-mirror · Latent vs Deterministic ----------
+     左 80ms 入,vrule 从中心 scaleY 0→1,右 240ms 入 */
+  function rDuoMirror(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.6, y:10});
+
+    const cols = [...slide.querySelectorAll('.duo-compare .col')];
+    const vrule = slide.querySelector('.duo-compare .vrule');
+    if(cols[0]) animate(cols[0], {opacity:[0,1], x:[-24, 0]},
+      {duration:.65, delay:.4, easing:EASE_ENTRY_EXP});
+    if(vrule){
+      vrule.style.transformOrigin = 'center';
+      animate(vrule, {opacity:[0,1], scaleY:[0, 1]},
+        {duration:.55, delay:.55, easing:EASE_ENTRY_EXP});
+    }
+    if(cols[1]) animate(cols[1], {opacity:[0,1], x:[24, 0]},
+      {duration:.65, delay:.7, easing:EASE_ENTRY_EXP});
+
+    const foot = slide.querySelector('.t-meta');
+    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
+  }
+
+  /* ---------- recipe: split-statement · 收尾 ----------
+     左黑半屏的 once / forever 错位入场;右白半屏 takeaway list 后跟 */
+  function rSplitStatement(slide, all){
+    const halves = [...slide.querySelectorAll('.half')];
+    /* 左黑半屏 — once 先入,forever 间隔 600ms */
+    if(halves[0]){
+      animate(halves[0], {opacity:[0,1]}, {duration:.4, easing:EASE_PROD});
+      const kpis = halves[0].querySelectorAll('.kpi-thin');
+      kpis.forEach((k, i)=>{
+        animate(k, {opacity:[0,1], y:[24,0]},
+          {duration:.7, delay:.25 + i*.55, easing:EASE_ENTRY_EXP});
+      });
+    }
+    /* 右白半屏 — list 三条依次入,在左侧 once 出现后开始 */
+    if(halves[1]){
+      animate(halves[1], {opacity:[0,1]}, {duration:.4, delay:.3, easing:EASE_PROD});
+      const items = halves[1].querySelectorAll('.takeaway-list li');
+      items.forEach((li, i)=>{
+        animate(li, {opacity:[0,1], x:[20, 0]},
+          {duration:.45, delay:1.0 + i*.12, easing:EASE_ENTRY_EXP});
+      });
+    }
+  }
+
+  /* ---------- recipe: timeline-walk · P11 横向 evolution ----------
+     标题先入 → 横轴虚线 scaleX 拉开(伪) → 5 个 dot 按年代依次 scale 入 → label 跟随 */
+  function rTimelineWalk(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const tl = slide.querySelector('.timeline-h');
+    if(tl) animate(tl, {opacity:[0,1]}, {duration:.4, delay:.35, easing:EASE_PROD});
+
+    const nodes = [...slide.querySelectorAll('.timeline-h .th-node')];
+    nodes.forEach((node, i)=>{
+      const base = .55 + i*.18;
+      const dot = node.querySelector('.dot');
+      const label = node.querySelector('.label');
+      if(dot){
+        dot.style.transformOrigin='center';
+        animate(dot, {opacity:[0,1], scale:[.2, 1]},
+          {duration:.45, delay:base, easing:EASE_ENTRY_EXP});
+      }
+      if(label){
+        const fromY = node.classList.contains('up') ? 8 : -8;
+        /* 保留 CSS 的水平居中 translateX(-50%),避免动效覆盖后 label 与 dot 错位 */
+        animate(label, {opacity:[0,1], transform:[`translate(-50%, ${fromY}px)`, 'translate(-50%, 0px)']},
+          {duration:.5, delay:base + .12, easing:EASE_ENTRY_EXP});
+      }
+    });
+
+    const foot = slide.querySelector('.t-meta');
+    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.7, easing:EASE_PROD});
+  }
+
+  /* ---------- recipe: manifesto · P12 Form & Found ----------
+     副标先入 → 大字两段错峰落 → 底部 ink 通栏条从下推上 */
+  function rManifesto(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head){
+      const cat = head.querySelector('.t-cat');
+      const title = head.querySelector('div:nth-child(2)');
+      if(cat) animate(cat, {opacity:[0,1], x:[-10,0]},
+        {duration:.4, delay:.1, easing:EASE_PROD});
+      if(title) animate(title, {opacity:[0,1], y:[26, 0]},
+        {duration:.85, delay:.3, easing:EASE_ENTRY_EXP});
+    }
+    /* 底部 ink 条从下推入 */
+    const foot = [...slide.querySelectorAll('[data-anim="up"]')];
+    foot.forEach((el, i)=>{
+      animate(el, {opacity:[0,1], y:[40, 0]},
+        {duration:.75, delay:.85 + i*.12, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: three-forces · P13 ----------
+     左 ink hero 先入 → 右 3 张卡按 1/2/3 依次从右滑入 + 每张大数字单独弹入 */
+  function rThreeForces(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.5, y:8});
+
+    const grid = slide.querySelector('[data-anim="up"]');
+    if(grid) animate(grid, {opacity:[0,1]}, {duration:.3, delay:.3, easing:EASE_PROD});
+
+    const heroBlock = grid?.querySelector(':scope > div:first-child');
+    if(heroBlock) animate(heroBlock, {opacity:[0,1], x:[-26, 0]},
+      {duration:.6, delay:.4, easing:EASE_ENTRY_EXP});
+
+    const cards = grid ? [...grid.querySelectorAll(':scope > div:nth-child(2) > .card-fill')] : [];
+    cards.forEach((card, i)=>{
+      const base = .6 + i*.18;
+      animate(card, {opacity:[0,1], x:[28, 0]},
+        {duration:.6, delay:base, easing:EASE_ENTRY_EXP});
+      const num = card.querySelector(':scope > div:first-child');
+      if(num) animate(num, {opacity:[0,1], scale:[.7, 1]},
+        {duration:.5, delay:base + .15, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: loop-form · P14 自学闭环 ----------
+     左 4 步像台阶依次入 → 右环图节点按时钟顺序入 → 中心 improves scale 入 */
+  function rLoopForm(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const grid = slide.querySelector('[data-anim="up"]');
+    if(grid) animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
+
+    /* 左侧 4 步台阶,每步从左滑入 */
+    const steps = grid ? [...grid.querySelectorAll(':scope > div:first-child > div')] : [];
+    steps.forEach((step, i)=>{
+      animate(step, {opacity:[0,1], x:[-18, 0]},
+        {duration:.5, delay:.5 + i*.14, easing:EASE_ENTRY_EXP});
+    });
+
+    /* 右侧 SVG 节点 (4 个 circle + label) 按 01→04 顺序入 */
+    const svg = grid?.querySelector('svg');
+    if(svg){
+      const ring = svg.querySelector('circle:first-of-type');
+      if(ring) animate(ring, {opacity:[0,.25]}, {duration:.5, delay:.6, easing:EASE_PROD});
+
+      const nodeCircles = [...svg.querySelectorAll('circle')].slice(1);
+      nodeCircles.forEach((c, i)=>{
+        c.style.transformOrigin = `${c.getAttribute('cx')}px ${c.getAttribute('cy')}px`;
+        animate(c, {opacity:[0,1], scale:[.4, 1]},
+          {duration:.45, delay:.7 + i*.16, easing:EASE_ENTRY_EXP});
+      });
+
+      const arrows = [...svg.querySelectorAll('path[marker-end]')];
+      arrows.forEach((p, i)=>{
+        animate(p, {opacity:[0,1]},
+          {duration:.4, delay:.85 + i*.16, easing:EASE_PROD});
+      });
+
+      const center = [...svg.querySelectorAll('text')].slice(-2);
+      center.forEach((t, i)=>{
+        animate(t, {opacity:[0,1], scale:[.7, 1]},
+          {duration:.5, delay:1.55 + i*.1, easing:EASE_ENTRY_EXP});
+      });
+    }
+  }
+
+  /* ---------- recipe: matrix-fill · P15 skill 矩阵 ----------
+     标题入 → 12 张卡按对角线波 (i+j) 扫入 → 底部 20,000 大数字最后 fade 入 */
+  function rMatrixFill(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const matrix = slide.querySelector('[data-anim="up"]');
+    if(!matrix) return;
+    animate(matrix, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
+
+    const cards = [...matrix.children];
+    const cols = 6;
+    cards.forEach((card, i)=>{
+      const row = Math.floor(i/cols), col = i%cols;
+      const wave = (row + col) * .055;
+      animate(card, {opacity:[0,1], y:[14, 0], scale:[.92, 1]},
+        {duration:.42, delay:.5 + wave, easing:EASE_ENTRY_EXP});
+    });
+
+    /* 底部 20,000 区块 */
+    const foot = [...slide.querySelectorAll('[data-anim="up"]')][1];
+    if(foot){
+      animate(foot, {opacity:[0,1], y:[18, 0]},
+        {duration:.7, delay:1.4, easing:EASE_ENTRY_EXP});
+      const bigNum = foot.querySelector('div:nth-child(1) > div:nth-child(2)');
+      if(bigNum) animate(bigNum, {opacity:[0,1], scale:[.94, 1]},
+        {duration:.7, delay:1.55, easing:EASE_ENTRY_EXP});
+    }
+  }
+
+  /* ---------- recipe: field-notes · P16 散点观察 ----------
+     标题入 → 6 张卡按"散点"乱序延迟入,微小旋转复位 */
+  function rFieldNotes(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const grid = slide.querySelector('[data-anim="up"]');
+    if(!grid) return;
+    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
+
+    /* 散点顺序: 用一个稍微打乱的索引数组,营造"乱中有序"感 */
+    const order = [0, 3, 1, 4, 2, 5];
+    const cards = [...grid.children];
+    order.forEach((idx, i)=>{
+      const card = cards[idx];
+      if(!card) return;
+      animate(card, {opacity:[0,1], y:[18, 0], rotate:[(idx%2?-.6:.6), 0]},
+        {duration:.55, delay:.5 + i*.11, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: system-diagram · P17 三圆系统图 ----------
+     标题入 → SVG 三组图依次入 + 中间同心圆从外向内 scale 入 → 下方注释列依次入 */
+  function rSystemDiagram(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const stage = slide.querySelector('[data-anim="up"]');
+    if(!stage) return;
+    animate(stage, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
+
+    const svgs = [...stage.querySelectorAll('svg')];
+    svgs.forEach((svg, i)=>{
+      const base = .55 + i*.22;
+      const circles = [...svg.querySelectorAll('circle')];
+      /* 中间是同心圆: 从外圈到内圈依次 scale 入 */
+      if(circles.length > 1){
+        circles.forEach((c, j)=>{
+          c.style.transformOrigin = `${c.getAttribute('cx')}px ${c.getAttribute('cy')}px`;
+          animate(c, {opacity:[0,1], scale:[.4, 1]},
+            {duration:.5, delay:base + j*.13, easing:EASE_ENTRY_EXP});
+        });
+      } else if(circles[0]){
+        circles[0].style.transformOrigin = `${circles[0].getAttribute('cx')}px ${circles[0].getAttribute('cy')}px`;
+        animate(circles[0], {opacity:[0,1], scale:[.4, 1]},
+          {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
+      }
+      const labels = [...svg.querySelectorAll('text')];
+      labels.forEach((t, j)=>{
+        animate(t, {opacity:[0,1]},
+          {duration:.4, delay:base + .25 + j*.06, easing:EASE_PROD});
+      });
+    });
+
+    /* 下方注释列 */
+    const cols = [...stage.querySelectorAll(':scope > div:last-child > div')];
+    cols.forEach((col, i)=>{
+      animate(col, {opacity:[0,1], y:[12, 0]},
+        {duration:.45, delay:1.3 + i*.1, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: why-now · P18 三列 + 巨大底数 ----------
+     标题入 → 三列文本入 → 三个底部巨数 01/02/03 错峰 scale 落定 */
+  function rWhyNow(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.55, y:10});
+
+    const grid = slide.querySelector('[data-anim="up"]');
+    if(!grid) return;
+    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
+
+    const cols = [...grid.children];
+    cols.forEach((col, i)=>{
+      const base = .5 + i*.16;
+      const body = col.querySelector(':scope > div:not(:last-child)');
+      const big = col.querySelector(':scope > div:last-child');
+      if(body) animate(body, {opacity:[0,1], y:[14, 0]},
+        {duration:.55, delay:base, easing:EASE_ENTRY_EXP});
+      if(big) animate(big, {opacity:[0,1], scale:[.7, 1]},
+        {duration:.7, delay:base + .35, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ---------- recipe: four-cards · P19 4 列卡片 ----------
+     顶部红线 scaleX 0→1 → 标题入 → 4 卡按 01-04 依次入 */
+  function rFourCards(slide, all){
+    /* 顶部红线 */
+    const topRule = slide.querySelector('[data-anim="line"] > div:first-child');
+    if(topRule){
+      topRule.style.transformOrigin = 'left center';
+      animate(topRule, {opacity:[0,1], scaleX:[0, 1]},
+        {duration:.5, delay:.1, easing:EASE_ENTRY_EXP});
+    }
+
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head){
+      const title = head.querySelector(':scope > div:nth-child(2)');
+      if(title) animate(title, {opacity:[0,1], y:[14, 0]},
+        {duration:.55, delay:.4, easing:EASE_ENTRY_EXP});
+    }
+
+    const grid = slide.querySelector('[data-anim="up"]');
+    if(!grid) return;
+    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.55, easing:EASE_PROD});
+
+    const cards = [...grid.children];
+    cards.forEach((card, i)=>{
+      animate(card, {opacity:[0,1], y:[18, 0]},
+        {duration:.55, delay:.7 + i*.13, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ============ P20 · Stacked KPI Ledger · 4 行账单逐行点亮 + 行间发丝从左画 ============ */
+  function rStackedLedger(slide, all){
+    const ledger = slide.querySelector('[data-anim="ledger"]');
+    if(!ledger) return;
+    animate(ledger, {opacity:[0,1]}, {duration:.3, delay:.1, easing:EASE_PROD});
+
+    const rows = [...ledger.querySelectorAll('.ledger-row')];
+    rows.forEach((row, i)=>{
+      const base = .25 + i*.18;
+      const num   = row.querySelector('.ledger-num');
+      const label = row.querySelector('.ledger-label');
+      const icon  = row.querySelector('.ledger-icon');
+      if(num)   animate(num,   {opacity:[0,1], y:[20, 0]},   {duration:.7,  delay:base,        easing:EASE_ENTRY_EXP});
+      if(label) animate(label, {opacity:[0,1], x:[-12, 0]},  {duration:.55, delay:base + .12, easing:EASE_ENTRY_EXP});
+      if(icon)  animate(icon,  {opacity:[0,1], scale:[.6,1]},{duration:.55, delay:base + .22, easing:EASE_ENTRY_EXP});
+    });
+  }
+
+  /* ============ P21 · Tech Spec Sheet · 标题分行 / KPI 顶线画出 + count 风感 / 竖线弹起 / 底巨数 ============ */
+  function rTechSpec(slide, all){
+    const head = slide.querySelector('[data-anim="line"]');
+    if(head) fade(head, {duration:.5, y:8});
+
+    const main = slide.querySelector('[data-anim="up"]');
+    if(main){
+      animate(main, {opacity:[0,1]}, {duration:.3, delay:.25, easing:EASE_PROD});
+
+      /* 左大标题分行 */
+      const titleLines = main.querySelector(':scope > div:first-child > div:first-child');
+      if(titleLines){
+        animate(titleLines, {opacity:[0,1], y:[18, 0]}, {duration:.7, delay:.35, easing:EASE_ENTRY_EXP});
+      }
+      const titleNote = main.querySelector(':scope > div:first-child > div:nth-child(2)');
+      if(titleNote){
+        animate(titleNote, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:.95, easing:EASE_ENTRY_EXP});
+      }
+
+      /* 三 KPI · 顶线 scaleX + 数字 fade-up + 副文字 */
+      const kpis = [...main.querySelectorAll(':scope > div:not([data-anim]):not(:first-child)')];
+      kpis.forEach((kpi, i)=>{
+        const base = .55 + i*.18;
+        const topRule = kpi.querySelector(':scope > div:first-child');
+        if(topRule){
+          topRule.style.transformOrigin = 'left center';
+          animate(topRule, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
+        }
+        const num = kpi.querySelector('.kpi-num');
+        if(num) animate(num, {opacity:[0,1], y:[14, 0]}, {duration:.6, delay:base + .15, easing:EASE_ENTRY_EXP});
+        const otherKids = [...kpi.children].filter(el=>el !== topRule && el !== num);
+        otherKids.forEach((el, j)=>{
+          animate(el, {opacity:[0,1]}, {duration:.4, delay:base + .25 + j*.05, easing:EASE_PROD});
+        });
+      });
+
+    }
+
+    /* 底部 hero 区: 巨数 + goal + tags + 右下竖线 */
+    const hero = slide.querySelector('[data-anim="hero"]');
+    if(hero){
+      animate(hero, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
+      const bottomHero = hero.querySelector('.bottom-hero');
+      if(bottomHero) animate(bottomHero, {opacity:[0,1], y:[24, 0], scale:[.92, 1]}, {duration:.7, delay:1.4, easing:EASE_ENTRY_EXP});
+      const middle = hero.querySelector(':scope > div:nth-child(2)');
+      if(middle){
+        const kids = [...middle.children];
+        kids.forEach((el, i)=>{
+          if(el.style && el.style.background === 'var(--ink)'){
+            el.style.transformOrigin = 'left center';
+            animate(el, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:1.6 + i*.1, easing:EASE_ENTRY_EXP});
+          } else {
+            animate(el, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:1.55 + i*.1, easing:EASE_ENTRY_EXP});
+          }
+        });
+      }
+      /* 右下: 文字先入, 9 根竖线再从底部 scaleY 弹起 */
+      const right = hero.querySelector(':scope > div:nth-child(3)');
+      if(right){
+        const rightText = right.querySelector(':scope > div:last-child');
+        if(rightText) animate(rightText, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:1.85, easing:EASE_ENTRY_EXP});
+      }
+      const bars = slide.querySelectorAll('[data-anim="bars"] .vbar');
+      bars.forEach((bar, i)=>{
+        bar.style.transformOrigin = 'bottom';
+        animate(bar, {scaleY:[0,1], opacity:[0,1]}, {duration:.5, delay:2.0 + i*.04, easing:EASE_ENTRY_EXP});
+      });
+    }
+  }
+
+  /* ============ P22 · Image Hero · 图缓推 + 标题白块从左滑入 + 三 KPI 顶线画出 ============ */
+  function rImageHero(slide, all){
+    const img = slide.querySelector('[data-anim="img"] img');
+    if(img){
+      animate(img, {opacity:[0,1], scale:[1.06, 1]}, {duration:1.1, delay:.05, easing:EASE_ENTRY_EXP});
+    }
+
+    const titleBlock = slide.querySelector('[data-anim="title-block"]');
+    if(titleBlock){
+      titleBlock.style.transformOrigin = 'left center';
+      animate(titleBlock, {opacity:[0,1], scaleX:[0, 1]}, {duration:.7, delay:.45, easing:EASE_ENTRY_EXP});
+      const titleText = titleBlock.querySelector('div');
+      if(titleText) animate(titleText, {opacity:[0,1]}, {duration:.4, delay:.85, easing:EASE_PROD});
+    }
+
+    const kpiWrap = slide.querySelector('[data-anim="kpi"]');
+    if(kpiWrap){
+      animate(kpiWrap, {opacity:[0,1]}, {duration:.3, delay:.7, easing:EASE_PROD});
+
+      /* 段落 */
+      const para = kpiWrap.querySelector(':scope > div:first-child');
+      if(para) animate(para, {opacity:[0,1], y:[14, 0]}, {duration:.6, delay:.85, easing:EASE_ENTRY_EXP});
+
+      /* 三列 KPI · 顶线 scaleX + 数字升起 */
+      const cols = [...kpiWrap.querySelectorAll(':scope > div:nth-child(2) > div')];
+      cols.forEach((col, i)=>{
+        const base = 1.1 + i*.18;
+        const topRule = col.querySelector(':scope > div:first-child');
+        if(topRule){
+          topRule.style.transformOrigin = 'left center';
+          animate(topRule, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
+        }
+        const cat = col.querySelector('.t-meta');
+        if(cat) animate(cat, {opacity:[0,1]}, {duration:.4, delay:base + .15, easing:EASE_PROD});
+        const hero = col.querySelector('.kpi-hero');
+        if(hero) animate(hero, {opacity:[0,1], y:[18, 0]}, {duration:.7, delay:base + .25, easing:EASE_ENTRY_EXP});
+        const handled = new Set([topRule, cat, hero]);
+        [...col.children]
+          .filter(el => !handled.has(el))
+          .forEach((el, j)=>{
+            animate(el, {opacity:[0,1]}, {duration:.4, delay:base + .45 + j*.05, easing:EASE_PROD});
+          });
+      });
+    }
+  }
+
+  const RECIPES = {
+    'hero': rHero,
+    'progression': rProgression,
+    'statement': rStatement,
+    'grid-reveal': rGridReveal,
+    'stack-build': rStackBuild,
+    'measure-up': rMeasureUp,
+    'bar-grow': rBarGrow,
+    'duo-mirror': rDuoMirror,
+    'split-statement': rSplitStatement,
+    'timeline-walk': rTimelineWalk,
+    'manifesto': rManifesto,
+    'three-forces': rThreeForces,
+    'loop-form': rLoopForm,
+    'matrix-fill': rMatrixFill,
+    'field-notes': rFieldNotes,
+    'system-diagram': rSystemDiagram,
+    'why-now': rWhyNow,
+    'four-cards': rFourCards,
+    'stacked-ledger': rStackedLedger,
+    'tech-spec': rTechSpec,
+    'image-hero': rImageHero,
+  };
+
+  function revealStatic(slide){
+    resetAnims(slide);
+    document.getAnimations?.().forEach(a=>a.cancel());
+    slide.querySelectorAll('[data-anim],.row-fill,.tl-node,.stack-block,.bar-tower,.sub-card,.col,.vrule,.kpi-cell,.card-fill,.card-accent,.card-ink')
+      .forEach(el=>{
+        el.style.opacity='1';
+        el.style.transform='none';
+      });
+  }
+
+  function playSlide(i){
+    const slide = slides[i];
+    if(!slide) return;
+    lastIdx = i;
+
+    if(window.__lowPowerMode){
+      revealStatic(slide);
+      return;
+    }
+
+    resetAnims(slide);
+
+    /* 关键:[data-anim] 容器很多时候只是占位标记,真正的几何动画在子元素上.
+       默认强制 reveal 所有 [data-anim] 容器, recipe 想做块入场时用 motion 的 {opacity:[0,1]} 会自动覆盖 */
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+
+    const all = [...slide.querySelectorAll('[data-anim]')];
+    const recipe = slide.dataset.animate;
+    const fn = RECIPES[recipe];
+    if(fn){ fn(slide, all); return; }
+
+    /* fallback: 平凡 fade */
+    if(all.length) animate(all, {opacity:[0,1], y:[12,0]},
+      {duration:.6, delay:i=>i*.08, easing:EASE_ENTRY_EXP});
+  }
+
+  window.__playSlide = playSlide;
+  window.__pipeAdvance = ()=>false;  /* 当前 deck 不用 pipeline recipe */
+
+  playSlide(window.__currentSlideIndex || 0);
+}
+</script>
+
+<script>
+/* ============== ASCII 点阵呼吸场 · IKB 封面/封底专用 ==============
+   sin/cos 二维噪声场驱动字符显隐,营造工业仪表板的"涌动呼吸"质感.
+   纯 canvas 2D, mix-blend-mode:screen 让字符在 IKB 底色上自然发亮.
+   用法:在需要呼吸场的容器(.canvas-card 或 split .half.b-accent)内首位插入
+        <canvas class="ascii-bg" aria-hidden="true">,本脚本会自动扫描并启动. */
+(function(){
+  const canvases = [...document.querySelectorAll('canvas.ascii-bg')];
+  if(!canvases.length) return;
+
+  const PALETTE = '   ...:::---+++***◦◦••▢▣';
+  const CELL = 16;
+  const FONT_SIZE = 13;
+
+  function setup(c){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = c.getBoundingClientRect();
+    if(rect.width < 4 || rect.height < 4) return false;
+    c.width = Math.round(rect.width * dpr);
+    c.height = Math.round(rect.height * dpr);
+    c.__dpr = dpr;
+    c.__w = rect.width;
+    c.__h = rect.height;
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const mono = (getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'JetBrains Mono, monospace').trim();
+    ctx.font = `500 ${FONT_SIZE}px ${mono}`;
+    ctx.textBaseline = 'top';
+    c.__ctx = ctx;
+    return true;
+  }
+
+  function draw(c, t){
+    if(!c.__ctx) return;
+    const ctx = c.__ctx, w = c.__w, h = c.__h;
+    ctx.clearRect(0, 0, w, h);
+    const cols = Math.ceil(w / CELL);
+    const rows = Math.ceil(h / CELL);
+    for(let r=0; r<rows; r++){
+      for(let cc=0; cc<cols; cc++){
+        const n = (
+          Math.sin(cc * 0.18 + t) +
+          Math.sin(r * 0.24 - t * 0.7) +
+          Math.sin((cc + r) * 0.12 + t * 0.45) +
+          Math.sin(Math.hypot(cc - cols * 0.5, r - rows * 0.5) * 0.16 - t * 0.55)
+        ) / 4; // [-1, 1]
+        const v = (n + 1) / 2; // [0, 1]
+        if(v < 0.22) continue;
+        const idx = Math.min(PALETTE.length - 1, Math.floor(v * PALETTE.length));
+        const ch = PALETTE[idx];
+        if(ch === ' ') continue;
+        const alpha = 0.08 + (v - 0.22) * 0.55;
+        ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+        ctx.fillText(ch, cc * CELL, r * CELL);
+      }
+    }
+  }
+
+  function resizeAll(){ canvases.forEach(setup); }
+  let pending = null;
+  window.addEventListener('resize', ()=>{
+    if(window.__lowPowerMode) return;
+    if(pending) cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(resizeAll);
+  }, {passive:true});
+
+  let t0 = performance.now();
+  let frame = 0, asciiRAF = 0, running = false;
+  function tick(now){
+    if(!running || window.__lowPowerMode){running=false;asciiRAF=0;return;}
+    const t = (now - t0) / 1000 * 0.55;
+    frame++;
+    canvases.forEach(c=>{
+      // 离屏 slide 降帧:每 4 帧渲染一次,在屏 slide 每帧渲染
+      const slide = c.closest('.slide');
+      const rect = slide ? slide.getBoundingClientRect() : null;
+      const onscreen = rect && rect.right > 0 && rect.left < window.innerWidth;
+      if(!onscreen && (frame & 3) !== 0) return;
+      draw(c, t);
+    });
+    asciiRAF = requestAnimationFrame(tick);
+  }
+  function start(){
+    if(running || window.__lowPowerMode) return;
+    resizeAll();
+    t0 = performance.now();
+    frame = 0;
+    running = true;
+    asciiRAF = requestAnimationFrame(tick);
+  }
+  function stop(){
+    running = false;
+    if(asciiRAF) cancelAnimationFrame(asciiRAF);
+    if(pending) cancelAnimationFrame(pending);
+    asciiRAF = 0;
+    pending = null;
+    canvases.forEach(c=>{
+      if(c.__ctx) c.__ctx.clearRect(0,0,c.__w || 0,c.__h || 0);
+    });
+  }
+  addEventListener('swiss-low-power-change', e=>{e.detail.on ? stop() : start();});
+  start();
+})();
+</script>
+</body>
+</html>
